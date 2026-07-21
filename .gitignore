@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node
+node_modules/
+dist/
+build/
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# IaC / deploy artifacts
+.serverless/
+.vercel/
+
+# OS / editor
+.DS_Store
+*.log
