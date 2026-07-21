@@ -7,8 +7,24 @@ Base path: `/api` (API Gateway → Lambda, Python). 인증이 필요한 엔드�
 |---|---|---|---|
 | GET | `/users` | 사용자 선택 드롭다운용 목록 (`user_id`, `display_name`만 반환, PIN 정보 없음). 기본적으로 `status="active"`인 유저만 반환 | 불필요 |
 | POST | `/auth/verify` | `{user_id, pin}` → PIN 검증, 성공 시 단기 토큰 발급 | 불필요 |
+| PUT | `/users/{user_id}/pin` | 본인 PIN 변경 `{current_pin, new_pin}` | 필요 (본인만) |
 
 - 탈퇴한 유저(`status="inactive"`)는 삭제되지 않고 데이터가 보존됨. 드롭다운/대시보드에는 안 보이지만 과거 기록 자체는 남아있음.
+- 참가자 계정 최초 생성 및 초기 PIN 설정은 참가자 본인이 아니라 관리자가 함 (아래 "관리자" 섹션). 참가자는 로그인 후 원하면 `PUT /users/{user_id}/pin`으로 스스로 변경 가능.
+
+## 관리자
+스터디 참가자(`Users`)와 완전히 분리된 단일 관리자 계정. 참가자 드롭다운 등 일반 사용자 흐름에는 전혀 노출되지 않고, 별도 경로(`/admin`)로만 접근한다.
+
+| Method | Path | 설명 | 인증 |
+|---|---|---|---|
+| POST | `/admin/auth/verify` | `{password}` → 검증 성공 시 관리자 전용 토큰 발급 | 불필요 |
+| POST | `/admin/users` | 신규 참가자 계정 생성 `{user_id, display_name, pin}` | 필요 (관리자) |
+| PATCH | `/admin/users/{user_id}` | 참가자 `status` 변경 (`active`/`inactive`) | 필요 (관리자) |
+| POST | `/admin/seasons` | 신규 시즌 생성 `{season_id, name, start_date, end_date, exam_date, target_level}` | 필요 (관리자) |
+| PATCH | `/admin/seasons/{season_id}/activate` | 해당 시즌을 `is_current=true`로 전환. 기존에 `is_current=true`였던 시즌은 자동으로 `false`로 전환됨 (원자적 처리 필요) | 필요 (관리자) |
+
+- 관리자 토큰은 참가자 토큰과 스코프가 분리되어, 참가자 전용 엔드포인트(`/entries/*` 등)에는 사용할 수 없고 그 반대도 마찬가지.
+- 관리자가 참가자 계정 생성 시 초기 PIN을 함께 지정하고, 계정/PIN 정보를 참가자에게 직접(예: 메신저) 전달하는 것을 전제로 한다 — 별도 초대 이메일/링크 시스템은 만들지 않음.
 
 ## 시즌
 | Method | Path | 설명 | 인증 |
@@ -18,6 +34,8 @@ Base path: `/api` (API Gateway → Lambda, Python). 인증이 필요한 엔드�
 | GET | `/dashboard/season/{season_id}` | 해당 시즌 전체 요약 (참가자별 기록 수, 개인 달성률 추이) | 불필요 |
 
 - 새로 생성되는 기록은 항상 현재 시즌(`/seasons/current`)에 자동 태깅됨 — 클라이언트가 시즌을 직접 선택하지 않음.
+- `/seasons/current` 응답에는 `exam_date`가 포함되며, 프론트는 이를 이용해 "OO 시험까지 OO일 남았습니다" 배너를 계산해 표시한다(접속 시에만 노출되는 정보성 배너, 이메일/푸시 등 능동 알림 아님).
+- 시즌 생성 및 전환은 참가자가 아니라 관리자 전용 기능 (아래 "관리자" 섹션).
 - 여러 스터디 그룹(다른 어학/자격증 등)이 생기는 경우, 이 리포지토리 안에서 그룹 개념을 나누지 않고 **그룹별로 별도 배포**한다 (별도 DynamoDB 테이블 + 별도 스택). 자세한 내용은 [docs/data-model.md](data-model.md) 참고.
 
 ## 목표 설정
@@ -55,13 +73,13 @@ Base path: `/api` (API Gateway → Lambda, Python). 인증이 필요한 엔드�
   "week": "2026-W03",
   "range": {"from": "2026-07-13", "to": "2026-07-19"},
   "participants": [
-    {"user_id": "u1", "display_name": "A", "entry_count": 5},
-    {"user_id": "u2", "display_name": "B", "entry_count": 0}
+    {"user_id": "u1", "display_name": "A", "entry_count": 5, "achievement_rate": 82},
+    {"user_id": "u2", "display_name": "B", "entry_count": 0, "achievement_rate": null}
   ],
   "not_participated": ["u2"]
 }
 ```
-- 그룹 대시보드에 개인별/평균 달성률(%)까지 노출할지는 **미정** — "성과 압박을 주지 않는다"는 원칙과 상충하는지 검토 후 별도 결정. 현재는 개인 화면에서만 달성률을 보여준다.
+- `achievement_rate`는 해당 기간 참가자 개인의 평균 달성률(%) — 계산 가능한(단위 일치) 기록이 없으면 `null`. **그룹 전체를 하나로 합산한 평균이 아니라 참가자별 개별 수치**라는 점에 유의(그룹 합산 금지 원칙과 상충하지 않음).
 
 ## 비고
 - 인증이 "불필요"로 표시된 GET 엔드포인트는 그룹 내부 전용(URL 자체가 비공개 배포)이라는 전제. 외부 공개 시에는 최소한 그룹 공용 접근키 정도는 추가 검토 필요.

@@ -12,6 +12,10 @@ Python으로 작성되는 Lambda 핸들러. API 계약은 [../docs/api.md](../do
 - 달성률(%) 계산은 `amount`/`goal_snapshot`을 입력으로 받는 순수 함수로 작성하고, 두 값의 `unit`이 일치할 때만 계산한다 (다르면 null 반환).
 - 엔트리 저장 시 현재 시즌(`Seasons.is_current=true`)의 `season_id`를 자동으로 `Entries.season_id`에 채운다 — 클라이언트가 시즌을 보내지 않는다.
 - 유저 목록/대시보드/미수행자 판정 등 모든 집계 로직은 `Users.status="active"`인 유저만 대상으로 한다. `inactive` 유저의 과거 `Entries`는 삭제하지 않고 그대로 조회 가능하게 남겨둔다.
+- 대시보드 응답의 참가자별 `achievement_rate`는 기간 내 계산 가능한(단위 일치) 일별 달성률의 평균을 구하는 순수 함수로 작성한다. 그룹 전체를 합산하는 함수는 만들지 않는다(참가자별 개별 수치).
+- D-day(`exam_date` - 오늘, KST 기준)도 순수 함수로 계산한다.
+- `/admin/*` 엔드포인트는 참가자 토큰과 분리된 별도 인증 미들웨어로 검증한다 — 참가자 토큰으로 관리자 엔드포인트 호출이 불가능해야 하고 그 반대도 마찬가지.
+- 시즌 활성화(`PATCH /admin/seasons/{id}/activate`)는 "기존 `is_current=true` 항목을 false로, 신규 항목을 true로" 두 쓰기를 `TransactWriteItems`로 묶어 원자적으로 처리한다 — 동시에 두 시즌이 `is_current=true`가 되는 상태를 방지하기 위함.
 
 ## 아직 없는 것
 코드 스캐폴딩 전 단계. 구현 시작 시 `requirements.txt`, `handlers/`, `repos/`, `tests/` 구조로 시작 예정.
