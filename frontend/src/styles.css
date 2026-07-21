@@ -1,0 +1,155 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f7f7fa;
+  color: #222;
+}
+
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: #fff;
+  padding: 16px;
+}
+
+h1 {
+  font-size: 1.3rem;
+}
+
+h2 {
+  font-size: 1.05rem;
+  margin-top: 24px;
+}
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  color: #555;
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+
+input,
+select,
+textarea,
+button {
+  width: 100%;
+  font-size: 1rem;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+button {
+  background: #4a6cf7;
+  color: #fff;
+  border: none;
+  margin-top: 16px;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #eee;
+  color: #333;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.dday-banner {
+  background: #eef1ff;
+  color: #3a4ba0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.error {
+  color: #c0392b;
+  font-size: 0.85rem;
+  margin-top: 8px;
+}
+
+.hint {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+nav a,
+nav button {
+  width: auto;
+  margin-top: 0;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  background: #eee;
+  color: #333;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 0.9rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid #eee;
+}
+
+.view-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.view-tabs button {
+  margin-top: 0;
+  flex: 1;
+}
+
+.view-tabs button.active {
+  background: #4a6cf7;
+  color: #fff;
+}
+
+.card {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.feed-item {
+  border-bottom: 1px solid #eee;
+  padding: 8px 0;
+  font-size: 0.9rem;
+}
+
+.feed-item .meta {
+  color: #888;
+  font-size: 0.78rem;
+}

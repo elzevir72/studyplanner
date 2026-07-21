@@ -1,0 +1,293 @@
+service: study-planner
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: ap-northeast-2
+  stage: ${opt:stage, 'dev'}
+  memorySize: 256
+  timeout: 10
+  environment:
+    STAGE: ${self:provider.stage}
+    USERS_TABLE: ${self:service}-${self:provider.stage}-users
+    ADMIN_TABLE: ${self:service}-${self:provider.stage}-admin
+    SEASONS_TABLE: ${self:service}-${self:provider.stage}-seasons
+    ENTRIES_TABLE: ${self:service}-${self:provider.stage}-entries
+    CONFIG_TABLE: ${self:service}-${self:provider.stage}-config
+    JWT_SECRET: ${env:JWT_SECRET}
+  httpApi:
+    cors: true
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:TransactWriteItems
+          Resource:
+            - !GetAtt UsersTable.Arn
+            - !GetAtt AdminTable.Arn
+            - !GetAtt SeasonsTable.Arn
+            - !GetAtt EntriesTable.Arn
+            - !Sub '${EntriesTable.Arn}/index/*'
+            - !GetAtt ConfigTable.Arn
+
+package:
+  patterns:
+    - '!frontend/**'
+    - '!docs/**'
+    - '!prototype-sheets/**'
+
+functions:
+  # --- Auth (참가자) ---
+  authVerify:
+    handler: backend/handlers/auth_handler.verify
+    events:
+      - httpApi: { path: /api/auth/verify, method: post }
+
+  # --- Users ---
+  listUsers:
+    handler: backend/handlers/users_handler.list_users
+    events:
+      - httpApi: { path: /api/users, method: get }
+  changePin:
+    handler: backend/handlers/users_handler.change_pin
+    events:
+      - httpApi: { path: /api/users/{user_id}/pin, method: put }
+  getGoal:
+    handler: backend/handlers/users_handler.get_goal
+    events:
+      - httpApi: { path: /api/users/{user_id}/goal, method: get }
+  setGoal:
+    handler: backend/handlers/users_handler.set_goal
+    events:
+      - httpApi: { path: /api/users/{user_id}/goal, method: put }
+
+  # --- Entries ---
+  listEntries:
+    handler: backend/handlers/entries_handler.list_entries
+    events:
+      - httpApi: { path: /api/entries/{user_id}, method: get }
+  getEntry:
+    handler: backend/handlers/entries_handler.get_entry
+    events:
+      - httpApi: { path: /api/entries/{user_id}/{date}, method: get }
+  putEntry:
+    handler: backend/handlers/entries_handler.put_entry
+    events:
+      - httpApi: { path: /api/entries/{user_id}/{date}, method: put }
+  deleteEntry:
+    handler: backend/handlers/entries_handler.delete_entry
+    events:
+      - httpApi: { path: /api/entries/{user_id}/{date}, method: delete }
+
+  # --- Seasons ---
+  listSeasons:
+    handler: backend/handlers/seasons_handler.list_seasons
+    events:
+      - httpApi: { path: /api/seasons, method: get }
+  currentSeason:
+    handler: backend/handlers/seasons_handler.current_season
+    events:
+      - httpApi: { path: /api/seasons/current, method: get }
+  seasonDashboard:
+    handler: backend/handlers/seasons_handler.season_dashboard
+    events:
+      - httpApi: { path: /api/dashboard/season/{season_id}, method: get }
+
+  # --- Dashboard ---
+  weeklyDashboard:
+    handler: backend/handlers/dashboard_handler.weekly
+    events:
+      - httpApi: { path: /api/dashboard/weekly, method: get }
+  biweeklyDashboard:
+    handler: backend/handlers/dashboard_handler.biweekly
+    events:
+      - httpApi: { path: /api/dashboard/biweekly, method: get }
+  monthlyDashboard:
+    handler: backend/handlers/dashboard_handler.monthly
+    events:
+      - httpApi: { path: /api/dashboard/monthly, method: get }
+  feedDashboard:
+    handler: backend/handlers/dashboard_handler.feed
+    events:
+      - httpApi: { path: /api/dashboard/feed, method: get }
+
+  # --- Admin (참가자 인증과 완전 분리) ---
+  adminAuthVerify:
+    handler: backend/handlers/admin_handler.verify
+    events:
+      - httpApi: { path: /api/admin/auth/verify, method: post }
+  adminCreateUser:
+    handler: backend/handlers/admin_handler.create_user
+    events:
+      - httpApi: { path: /api/admin/users, method: post }
+  adminUpdateUserStatus:
+    handler: backend/handlers/admin_handler.update_user_status
+    events:
+      - httpApi: { path: /api/admin/users/{user_id}, method: patch }
+  adminCreateSeason:
+    handler: backend/handlers/admin_handler.create_season
+    events:
+      - httpApi: { path: /api/admin/seasons, method: post }
+  adminActivateSeason:
+    handler: backend/handlers/admin_handler.activate_season
+    events:
+      - httpApi: { path: /api/admin/seasons/{season_id}/activate, method: patch }
+
+resources:
+  Resources:
+    # ---------- DynamoDB ----------
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.USERS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: user_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: user_id
+            KeyType: HASH
+
+    AdminTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.ADMIN_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: admin_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: admin_id
+            KeyType: HASH
+
+    SeasonsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.SEASONS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: season_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: season_id
+            KeyType: HASH
+
+    EntriesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.ENTRIES_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: user_id
+            AttributeType: S
+          - AttributeName: date
+            AttributeType: S
+          - AttributeName: gsi_pk
+            AttributeType: S
+        KeySchema:
+          - AttributeName: user_id
+            KeyType: HASH
+          - AttributeName: date
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: ByDate
+            KeySchema:
+              - AttributeName: gsi_pk
+                KeyType: HASH
+              - AttributeName: date
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+
+    ConfigTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.CONFIG_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: config_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: config_id
+            KeyType: HASH
+
+    # ---------- Frontend hosting: S3 + CloudFront (OAC) ----------
+    FrontendBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-${self:provider.stage}-frontend
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+
+    FrontendOAC:
+      Type: AWS::CloudFront::OriginAccessControl
+      Properties:
+        OriginAccessControlConfig:
+          Name: ${self:service}-${self:provider.stage}-oac
+          OriginAccessControlOriginType: s3
+          SigningBehavior: always
+          SigningProtocol: sigv4
+
+    FrontendDistribution:
+      Type: AWS::CloudFront::Distribution
+      Properties:
+        DistributionConfig:
+          Enabled: true
+          DefaultRootObject: index.html
+          # SPA 라우팅: 404/403도 index.html로 돌려 클라이언트 라우터가 처리하게 함
+          CustomErrorResponses:
+            - ErrorCode: 403
+              ResponseCode: 200
+              ResponsePagePath: /index.html
+            - ErrorCode: 404
+              ResponseCode: 200
+              ResponsePagePath: /index.html
+          Origins:
+            - Id: FrontendOrigin
+              DomainName: !GetAtt FrontendBucket.RegionalDomainName
+              S3OriginConfig:
+                OriginAccessIdentity: ''
+              OriginAccessControlId: !GetAtt FrontendOAC.Id
+          DefaultCacheBehavior:
+            TargetOriginId: FrontendOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # AWS managed: CachingOptimized
+
+    FrontendBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref FrontendBucket
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: cloudfront.amazonaws.com
+              Action: s3:GetObject
+              Resource: !Sub '${FrontendBucket.Arn}/*'
+              Condition:
+                StringEquals:
+                  AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}'
+
+  Outputs:
+    FrontendBucketName:
+      Value: !Ref FrontendBucket
+    FrontendDistributionId:
+      Value: !Ref FrontendDistribution
+    FrontendDomainName:
+      Value: !GetAtt FrontendDistribution.DomainName
+    ApiUrl:
+      Value: !Sub 'https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com'
