@@ -50,97 +50,97 @@ functions:
   authVerify:
     handler: backend/handlers/auth_handler.verify
     events:
-      - httpApi: { path: /api/auth/verify, method: post }
+      - httpApi: { path: '/api/auth/verify', method: post }
 
   # --- Users ---
   listUsers:
     handler: backend/handlers/users_handler.list_users
     events:
-      - httpApi: { path: /api/users, method: get }
+      - httpApi: { path: '/api/users', method: get }
   changePin:
     handler: backend/handlers/users_handler.change_pin
     events:
-      - httpApi: { path: /api/users/{user_id}/pin, method: put }
+      - httpApi: { path: '/api/users/{user_id}/pin', method: put }
   getGoal:
     handler: backend/handlers/users_handler.get_goal
     events:
-      - httpApi: { path: /api/users/{user_id}/goal, method: get }
+      - httpApi: { path: '/api/users/{user_id}/goal', method: get }
   setGoal:
     handler: backend/handlers/users_handler.set_goal
     events:
-      - httpApi: { path: /api/users/{user_id}/goal, method: put }
+      - httpApi: { path: '/api/users/{user_id}/goal', method: put }
 
   # --- Entries ---
   listEntries:
     handler: backend/handlers/entries_handler.list_entries
     events:
-      - httpApi: { path: /api/entries/{user_id}, method: get }
+      - httpApi: { path: '/api/entries/{user_id}', method: get }
   getEntry:
     handler: backend/handlers/entries_handler.get_entry
     events:
-      - httpApi: { path: /api/entries/{user_id}/{date}, method: get }
+      - httpApi: { path: '/api/entries/{user_id}/{date}', method: get }
   putEntry:
     handler: backend/handlers/entries_handler.put_entry
     events:
-      - httpApi: { path: /api/entries/{user_id}/{date}, method: put }
+      - httpApi: { path: '/api/entries/{user_id}/{date}', method: put }
   deleteEntry:
     handler: backend/handlers/entries_handler.delete_entry
     events:
-      - httpApi: { path: /api/entries/{user_id}/{date}, method: delete }
+      - httpApi: { path: '/api/entries/{user_id}/{date}', method: delete }
 
   # --- Seasons ---
   listSeasons:
     handler: backend/handlers/seasons_handler.list_seasons
     events:
-      - httpApi: { path: /api/seasons, method: get }
+      - httpApi: { path: '/api/seasons', method: get }
   currentSeason:
     handler: backend/handlers/seasons_handler.current_season
     events:
-      - httpApi: { path: /api/seasons/current, method: get }
+      - httpApi: { path: '/api/seasons/current', method: get }
   seasonDashboard:
     handler: backend/handlers/seasons_handler.season_dashboard
     events:
-      - httpApi: { path: /api/dashboard/season/{season_id}, method: get }
+      - httpApi: { path: '/api/dashboard/season/{season_id}', method: get }
 
   # --- Dashboard ---
   weeklyDashboard:
     handler: backend/handlers/dashboard_handler.weekly
     events:
-      - httpApi: { path: /api/dashboard/weekly, method: get }
+      - httpApi: { path: '/api/dashboard/weekly', method: get }
   biweeklyDashboard:
     handler: backend/handlers/dashboard_handler.biweekly
     events:
-      - httpApi: { path: /api/dashboard/biweekly, method: get }
+      - httpApi: { path: '/api/dashboard/biweekly', method: get }
   monthlyDashboard:
     handler: backend/handlers/dashboard_handler.monthly
     events:
-      - httpApi: { path: /api/dashboard/monthly, method: get }
+      - httpApi: { path: '/api/dashboard/monthly', method: get }
   feedDashboard:
     handler: backend/handlers/dashboard_handler.feed
     events:
-      - httpApi: { path: /api/dashboard/feed, method: get }
+      - httpApi: { path: '/api/dashboard/feed', method: get }
 
   # --- Admin (참가자 인증과 완전 분리) ---
   adminAuthVerify:
     handler: backend/handlers/admin_handler.verify
     events:
-      - httpApi: { path: /api/admin/auth/verify, method: post }
+      - httpApi: { path: '/api/admin/auth/verify', method: post }
   adminCreateUser:
     handler: backend/handlers/admin_handler.create_user
     events:
-      - httpApi: { path: /api/admin/users, method: post }
+      - httpApi: { path: '/api/admin/users', method: post }
   adminUpdateUserStatus:
     handler: backend/handlers/admin_handler.update_user_status
     events:
-      - httpApi: { path: /api/admin/users/{user_id}, method: patch }
+      - httpApi: { path: '/api/admin/users/{user_id}', method: patch }
   adminCreateSeason:
     handler: backend/handlers/admin_handler.create_season
     events:
-      - httpApi: { path: /api/admin/seasons, method: post }
+      - httpApi: { path: '/api/admin/seasons', method: post }
   adminActivateSeason:
     handler: backend/handlers/admin_handler.activate_season
     events:
-      - httpApi: { path: /api/admin/seasons/{season_id}/activate, method: patch }
+      - httpApi: { path: '/api/admin/seasons/{season_id}/activate', method: patch }
 
 resources:
   Resources:
