@@ -48,11 +48,10 @@ jobs:
 
       - name: Read stack outputs
         id: outputs
-        working-directory: infra
         run: |
-          BUCKET=$(npx serverless info --stage ${{ env.STAGE }} --verbose | grep FrontendBucketName | awk '{print $2}')
-          DIST_ID=$(npx serverless info --stage ${{ env.STAGE }} --verbose | grep FrontendDistributionId | awk '{print $2}')
-          API_URL=$(npx serverless info --stage ${{ env.STAGE }} --verbose | grep ApiUrl | awk '{print $2}')
+          BUCKET=$(aws cloudformation describe-stacks --stack-name study-planner-${{ env.STAGE }} --region ${{ env.AWS_REGION }} --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" --output text)
+          DIST_ID=$(aws cloudformation describe-stacks --stack-name study-planner-${{ env.STAGE }} --region ${{ env.AWS_REGION }} --query "Stacks[0].Outputs[?OutputKey=='FrontendDistributionId'].OutputValue" --output text)
+          API_URL=$(aws cloudformation describe-stacks --stack-name study-planner-${{ env.STAGE }} --region ${{ env.AWS_REGION }} --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" --output text)
           echo "bucket=$BUCKET" >> "$GITHUB_OUTPUT"
           echo "distribution_id=$DIST_ID" >> "$GITHUB_OUTPUT"
           echo "api_url=$API_URL" >> "$GITHUB_OUTPUT"
