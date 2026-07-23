@@ -46,10 +46,9 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Deploy backend (Lambda + API Gateway + DynamoDB + S3/CloudFront resources)
-        working-directory: infra
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
-        run: npx serverless deploy --stage ${{ env.STAGE }}
+        run: npx --prefix infra serverless deploy --config infra/serverless.yml --stage ${{ env.STAGE }}
 
       - name: Read stack outputs
         id: outputs
