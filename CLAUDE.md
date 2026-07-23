@@ -2,7 +2,7 @@
 
 10명 이하 스터디 그룹용 학습 이력 기록/공유 도구. 상세 배경은 [README.md](README.md), 아키텍처 결정은 [docs/architecture.md](docs/architecture.md) 참고.
 
-## 진행 상황 (2026-07-21 기준)
+## 진행 상황 (2026-07-23 기준)
 
 **완료**
 - [x] 요구사항 검토 및 스택/설계 결정 확정 (React+TS / Python Lambda / DynamoDB / Serverless Framework / PIN 인증 / CloudFront 기본 URL)
@@ -12,19 +12,26 @@
 - [x] GitHub 리포지토리 등록 완료: `https://github.com/elzevir72/studyplanner` (Public). `main`=검증된 상태, `dev`=개발 브랜치. **이제 GitHub이 프로젝트 source of truth.**
 - [x] 기능 기획 1차 완료 — 목표 설정/달성률(%), 시즌(Season), 멤버 비활성화(status), 멀티그룹 대응 방식(별도 배포), 알림 제외, 모바일 우선. 상세 근거는 [docs/architecture.md](docs/architecture.md) ADR 5~11 참고.
 - [x] 기능 기획 2차 완료 — 그룹 대시보드 참가자별 달성률 노출, 시험일 D-day 배너, 관리자 계정 분리 및 참가자 계정/시즌 운영 플로우. [docs/architecture.md](docs/architecture.md) ADR 12~14 참고.
+- [x] **코드 스캐폴딩 완료** — `backend/`(Lambda 핸들러·도메인 로직·리포지토리·유닛테스트), `frontend/`(React+TS+Vite, 로그인/기록/대시보드/관리자 4개 화면), `infra/serverless.yml`(DynamoDB 5개 테이블 + Lambda 21개 + S3/CloudFront), `.github/workflows/deploy.yml`(GitHub Actions 자동 배포) 모두 구현됨.
+- [x] AWS 배포 환경 확정 — Vercel/MariaDB 전환 제안은 기각, **기존 AWS 스택(Lambda+DynamoDB) 유지로 최종 결정**. 사유: Vercel 전환 시 DB 계층(DynamoDB→SQL) 전면 재작성이 필요해 재작업 비용이 크고, MariaDB를 RDS로 유지하면 AWS 계정 이슈가 그대로 남아 전환 실익이 없다고 판단.
+- [x] AWS 계정 준비 — 사용자가 별도 AWS 계정 생성(루트 소유자 아님), 콘솔 로그인용 관리자 IAM 사용자 생성 (`AdministratorAccess` 그룹 연결), GitHub Actions 배포 전용 IAM 사용자(`s3_admin`, 액세스 키 발급, `AdministratorAccess` 재사용) 생성 완료.
+- [x] GitHub Secrets 등록 완료 (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `JWT_SECRET`).
+- [x] `dev` → `main` 머지 및 최초 배포 성공 — DynamoDB 5개 테이블, S3, CloudFront, Lambda 21개, API Gateway 모두 생성 확인(CloudFormation 스택 `study-planner-prod`).
+- [x] 프론트엔드 배포(S3 sync) 실패 수정 — `serverless info --verbose` 텍스트 파싱 방식이 깨져서 빈 버킷명으로 `aws s3 sync`가 실행되던 문제. CloudFormation 스택 아웃풋을 `aws cloudformation describe-stacks --query`로 직접 조회하는 방식으로 교체.
+- [x] `infra/serverless.yml` YAML 문법 오류 수정 — `httpApi: { path: /api/users/{user_id}/pin, ... }`처럼 flow mapping 안에 따옴표 없는 경로를 쓰면 `{user_id}`의 중괄호가 새 flow mapping 시작으로 오인되어 파싱 실패. 모든 `path` 값에 따옴표 처리(21곳).
+- [x] 관리자 계정(`Admin` 테이블) 생성 — `password_hash`는 bcrypt 해시로 저장(평문 아님). `seed_admin.py`는 대화형 프롬프트라 로컬 실행 대신 **AWS 콘솔 DynamoDB 항목 생성으로 수동 등록**(`admin_id`=`ADMIN`, `password_hash`=bcrypt 해시).
 
 **미완료 / 다음에 이어갈 것**
-- [ ] 이번 세션의 문서 변경사항 커밋/푸시 대기 중 (사용자 승인 필요)
-- [ ] AWS 환경 확정 대기 — 협업자의 기존 AWS 계정/IAM을 쓸지 아직 안 정해짐. Vercel + AWS RDS(MariaDB) 전환 제안도 검토만 하고 최종 결론 안 남(현재 기본값은 기존 스택 유지) — 자세한 내용은 auto-memory `project_study_planner.md` 참고
-- [ ] Node.js/npm, AWS CLI, GitHub CLI(gh), winget 모두 로컬 미설치 상태
-- [ ] 코드 스캐폴딩 전혀 시작 안 함 — `backend/`, `frontend/`, `infra/`는 CLAUDE.md만 있고 실제 코드 없음
-- [ ] 인앱 상호작용(동료와의 협업 워크플로 포함)은 사용자가 "코딩은 협업 진행하면서 구성"한다고 밝힘 — 코드 스캐폴딩 시점은 협업자 합류 이후가 될 가능성 있음
-- [ ] 관리자 부트스트랩 방식은 원칙만 정함(자동 배포와 분리된 수동 idempotent 시딩 스크립트) — AWS 계정 운영 방식이 미정이라 실제 스크립트 구현은 보류. [docs/architecture.md](docs/architecture.md) ADR 14 참고
+- [ ] **`/admin` 로그인 500 에러 — 원인 파악, 수정 진행 중, 재배포 필요.** 실제 원인은 `serverless.yml`이 `infra/` 디렉토리 안에 있어서, Serverless Framework가 서비스 루트를 `infra/`로 잡고 핸들러 경로(`backend/handlers/...`, 리포 루트 기준)를 못 찾는 구조적 문제(`Runtime.ImportModuleError: No module named 'backend'`, CloudWatch 로그로 확인). `--config` 옵션으로 우회 시도했으나 Serverless Framework가 아예 지원하지 않아 실패(`Service configuration is expected to be placed in a root of a service`). **해결책으로 `serverless.yml`을 리포 루트로 이동**하고 `.github/workflows/deploy.yml`도 루트 기준 실행(`npx --prefix infra serverless deploy --stage prod`, working-directory 없이)으로 수정함 — 이 세션에서 커밋/푸시 완료 후 재배포 결과 확인 필요.
+- [ ] 재배포 후 관리자 로그인(`adminsoochoo`) 및 이후 참가자 계정/시즌 생성 플로우 실제 동작 검증 필요.
+- [ ] `s3_admin`이라는 이름의 배포용 IAM 사용자에 `AdministratorAccess`를 재사용 중 — 최소 권한 원칙상 나중에 여유 생기면 Serverless 배포에 필요한 서비스로만 좁히는 것을 고려(현재는 편의상 보류 상태).
+- [ ] Node.js/npm, GitHub CLI(gh), winget 로컬 미설치 상태 (AWS CLI는 설치 확인됨, `s3_admin` 자격증명으로 configure됨 — 단, 이 로컬 자격증명은 배포 리소스 조회 권한이 부족해 프로젝트 리소스 확인에는 콘솔을 사용 중).
+- [ ] 로컬 사용자가 리포지토리(`elzevir72/studyplanner`) Admin 권한이 아닌 Collaborator라 GitHub Settings 일부(Actions 활성화 여부 등)를 직접 확인/변경 불가 — 필요 시 리포 소유자(`elzevir72`)에게 요청 필요.
 
 **다음 세션 시작 시 확인할 것 (우선순위 순):**
-1. 이번 세션 문서 변경사항 커밋/푸시 여부
-2. Vercel/MariaDB 전환 제안 및 AWS 환경(협업자 계정) — 결론 냈는지
-3. 코드 스캐폴딩 시작 시점 — 협업자 합류 여부에 달려있을 수 있음
+1. `serverless.yml` 루트 이동 커밋 이후 재배포 성공 여부, `/admin` 로그인 정상 동작 여부
+2. 참가자 계정 생성 및 시즌 생성/활성화까지 관리자 플로우 실제 확인
+3. 배포용 IAM(`s3_admin`) 권한을 최소 권한으로 좁힐지 여부 (선택 사항)
 
 ## 원칙
 - 이 프로젝트는 **강제 관리 도구가 아니라 공유 촉진 도구**다. 기능을 추가할 때 "성과 압박"보다 "공유 편의"를 우선한다.

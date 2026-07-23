@@ -14,5 +14,8 @@ React + TypeScript SPA. S3 + CloudFront로 정적 호스팅. API 계약은 [../d
 - 로그인 토큰은 짧은 TTL이므로 만료 시 자연스럽게 사용자 선택 화면으로 리다이렉트되도록 처리.
 - 대시보드에서 "미수행자" 등 그룹 정보는 압박감을 주지 않는 톤으로 표기한다 (이 도구의 목적은 성과 관리가 아니라 공유 촉진).
 
+## 구현 현황 (2026-07-23 기준)
+스캐폴딩 완료 — Vite + React + TypeScript. `src/pages/`(로그인, 개인 기록, 대시보드, `AdminPage`), `src/components/DdayBanner.tsx`, `src/api/client.ts`(백엔드 API 계약과 매핑 확인됨), `src/auth.ts`(참가자/관리자 토큰 분리 저장), `src/achievement.ts`(달성률 표시 로직) 모두 존재. S3+CloudFront로 배포되어 실사용 검증 단계.
+
 ## 아직 없는 것
-코드 스캐폴딩 전 단계. 구현 시작 시 Vite + React + TypeScript로 초기화 예정.
+없음 — 설계된 4개 화면 모두 구현됨. 이후 변경은 실사용 피드백 기반 조정 위주.
