@@ -31,7 +31,12 @@ jobs:
         run: npm install
 
       - name: Install backend dependencies into package
-        run: pip install -r backend/requirements.txt -t backend/vendor
+        run: |
+          pip install -r backend/requirements.txt \
+            --platform manylinux2014_x86_64 \
+            --python-version 3.12 \
+            --only-binary=:all: \
+            -t .
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4

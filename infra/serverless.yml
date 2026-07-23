@@ -44,6 +44,9 @@ package:
     - '!frontend/**'
     - '!docs/**'
     - '!prototype-sheets/**'
+    - '!infra/**'
+    - '!.github/**'
+    - '!backend/tests/**'
 
 functions:
   # --- Auth (참가자) ---
