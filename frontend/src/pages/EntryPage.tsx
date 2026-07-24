@@ -18,16 +18,51 @@ import type { Entry, MethodGoal, Season, StudyItem } from '../types'
 const METHOD_PRESETS = ['인강', '문제집', '단어암기', '모의고사']
 const TOPIC_PRESETS = ['문법', '어휘', '한자', '청해', '독해']
 
+// 수단별 학습량 입력 방식.
+// - time: 시간/분으로 입력받아 분(unit="분")으로 환산
+// - fraction: 분수형(맞은 개수/전체 문항 수), unit="문항" 고정 — 기록은 맞은 개수, 목표는 전체 문항 수
+// - fixedUnit: 수량 입력 + 단위 자동 고정 (사용자가 매번 단위를 타이핑할 필요 없음)
+// - free: 수량 + 자유 단위 입력 (프리셋에 없는 수단 직접 입력 시)
+type AmountKind = 'time' | 'fraction' | 'fixedUnit' | 'free'
+
+const METHOD_AMOUNT_KIND: Record<string, AmountKind> = {
+  인강: 'time',
+  모의고사: 'fraction',
+  문제집: 'fixedUnit',
+  단어암기: 'fixedUnit',
+}
+
+const METHOD_FIXED_UNIT: Record<string, string> = {
+  문제집: '페이지',
+  단어암기: '개',
+}
+
+function amountKindOf(method: string): AmountKind {
+  return METHOD_AMOUNT_KIND[method] ?? 'free'
+}
+
+function defaultAmountFor(method: string): { value: number; unit: string } {
+  const kind = amountKindOf(method)
+  if (kind === 'time') return { value: 0, unit: '분' }
+  if (kind === 'fraction') return { value: 0, unit: '문항' }
+  if (kind === 'fixedUnit') return { value: 0, unit: METHOD_FIXED_UNIT[method] }
+  return { value: 0, unit: '' }
+}
+
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
 function emptyStudyItem(): StudyItem {
-  return { method: '', topics: [], amount: { value: 0, unit: '분' } }
+  return { method: '', topics: [], amount: { value: 0, unit: '' } }
 }
 
 function toggleTopic(topics: string[], topic: string): string[] {
   return topics.includes(topic) ? topics.filter((t) => t !== topic) : [...topics, topic]
+}
+
+function minutesToHm(totalMinutes: number): { hours: number; minutes: number } {
+  return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 }
 }
 
 export default function EntryPage() {
@@ -80,7 +115,17 @@ export default function EntryPage() {
   const achievementRate = entry ? calcEntryAchievementRate(entry.study_items, entry.goal_snapshot) : null
 
   const updateItem = (index: number, patch: Partial<StudyItem>) => {
-    setStudyItems((items) => items.map((item, i) => (i === index ? { ...item, ...patch } : item)))
+    setStudyItems((items) =>
+      items.map((item, i) => {
+        if (i !== index) return item
+        const next = { ...item, ...patch }
+        // 수단이 바뀌면 그 수단에 맞는 학습량 입력 방식(시간/분수/고정단위)으로 리셋
+        if (patch.method !== undefined && patch.method !== item.method) {
+          next.amount = defaultAmountFor(patch.method)
+        }
+        return next
+      }),
+    )
   }
 
   const addStudyItem = () => setStudyItems((items) => [...items, emptyStudyItem()])
@@ -98,6 +143,8 @@ export default function EntryPage() {
     try {
       const saved = await putEntry(session.user_id, date, { study_items: validItems, notes }, session.token)
       setEntry(saved)
+      alert('저장이 완료되었습니다.')
+      navigate('/dashboard')
     } catch (err) {
       setSaveError(err instanceof ApiError ? err.message : '저장에 실패했습니다.')
     } finally {
@@ -115,9 +162,19 @@ export default function EntryPage() {
   }
 
   const updateGoal = (index: number, patch: Partial<MethodGoal>) => {
-    setGoals((gs) => gs.map((g, i) => (i === index ? { ...g, ...patch } : g)))
+    setGoals((gs) =>
+      gs.map((g, i) => {
+        if (i !== index) return g
+        const next = { ...g, ...patch }
+        if (patch.method !== undefined && patch.method !== g.method) {
+          const { unit } = defaultAmountFor(patch.method)
+          next.unit = unit
+        }
+        return next
+      }),
+    )
   }
-  const addGoal = () => setGoals((gs) => [...gs, { method: '', value: 0, unit: '분' }])
+  const addGoal = () => setGoals((gs) => [...gs, { method: '', value: 0, unit: '' }])
   const removeGoal = (index: number) => setGoals((gs) => gs.filter((_, i) => i !== index))
 
   const handleSaveGoal = async (e: React.FormEvent) => {
@@ -210,19 +267,92 @@ export default function EntryPage() {
                 </div>
 
                 <label>학습량</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    type="number"
-                    min="0"
-                    value={item.amount.value || ''}
-                    onChange={(e) => updateItem(index, { amount: { ...item.amount, value: Number(e.target.value) } })}
-                  />
-                  <input
-                    value={item.amount.unit}
-                    onChange={(e) => updateItem(index, { amount: { ...item.amount, unit: e.target.value } })}
-                    placeholder="단위(분/페이지 등)"
-                  />
-                </div>
+                {(() => {
+                  const kind = amountKindOf(item.method)
+                  if (kind === 'time') {
+                    return (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <input
+                            type="number"
+                            min="0"
+                            value={minutesToHm(item.amount.value).hours || ''}
+                            onChange={(e) => {
+                              const { minutes } = minutesToHm(item.amount.value)
+                              const hours = Number(e.target.value) || 0
+                              updateItem(index, { amount: { value: hours * 60 + minutes, unit: '분' } })
+                            }}
+                          />
+                          <span className="hint">시간</span>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={minutesToHm(item.amount.value).minutes || ''}
+                            onChange={(e) => {
+                              const { hours } = minutesToHm(item.amount.value)
+                              const minutes = Number(e.target.value) || 0
+                              updateItem(index, { amount: { value: hours * 60 + minutes, unit: '분' } })
+                            }}
+                          />
+                          <span className="hint">분</span>
+                        </div>
+                      </div>
+                    )
+                  }
+                  if (kind === 'fraction') {
+                    const totalGoal = goals.find((g) => g.method === item.method)
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.amount.value || ''}
+                          onChange={(e) => updateItem(index, { amount: { value: Number(e.target.value), unit: '문항' } })}
+                          style={{ flex: 1 }}
+                        />
+                        <span className="hint">맞은 개수 / 전체 {totalGoal ? totalGoal.value : '?'}문항</span>
+                      </div>
+                    )
+                  }
+                  if (kind === 'fixedUnit') {
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.amount.value || ''}
+                          onChange={(e) => updateItem(index, { amount: { ...item.amount, value: Number(e.target.value) } })}
+                          style={{ flex: 1 }}
+                        />
+                        <span className="hint">{item.amount.unit}</span>
+                      </div>
+                    )
+                  }
+                  return (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.amount.value || ''}
+                          onChange={(e) => updateItem(index, { amount: { ...item.amount, value: Number(e.target.value) } })}
+                        />
+                        <span className="hint">수량</span>
+                      </div>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <input
+                          value={item.amount.unit}
+                          onChange={(e) => updateItem(index, { amount: { ...item.amount, unit: e.target.value } })}
+                          placeholder="예: 페이지, 개"
+                        />
+                        <span className="hint">단위</span>
+                      </div>
+                    </div>
+                  )
+                })()}
 
                 {studyItems.length > 1 && (
                   <button type="button" className="secondary" onClick={() => removeStudyItem(index)}>
@@ -291,15 +421,91 @@ export default function EntryPage() {
                   placeholder="목록에 없으면 직접 입력"
                 />
                 <label>목표량</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input
-                    type="number"
-                    min="0"
-                    value={g.value || ''}
-                    onChange={(e) => updateGoal(index, { value: Number(e.target.value) })}
-                  />
-                  <input value={g.unit} onChange={(e) => updateGoal(index, { unit: e.target.value })} placeholder="단위" />
-                </div>
+                {(() => {
+                  const kind = amountKindOf(g.method)
+                  if (kind === 'time') {
+                    return (
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <input
+                            type="number"
+                            min="0"
+                            value={minutesToHm(g.value).hours || ''}
+                            onChange={(e) => {
+                              const { minutes } = minutesToHm(g.value)
+                              const hours = Number(e.target.value) || 0
+                              updateGoal(index, { value: hours * 60 + minutes, unit: '분' })
+                            }}
+                          />
+                          <span className="hint">시간</span>
+                        </div>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={minutesToHm(g.value).minutes || ''}
+                            onChange={(e) => {
+                              const { hours } = minutesToHm(g.value)
+                              const minutes = Number(e.target.value) || 0
+                              updateGoal(index, { value: hours * 60 + minutes, unit: '분' })
+                            }}
+                          />
+                          <span className="hint">분</span>
+                        </div>
+                      </div>
+                    )
+                  }
+                  if (kind === 'fraction') {
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={g.value || ''}
+                          onChange={(e) => updateGoal(index, { value: Number(e.target.value), unit: '문항' })}
+                          style={{ flex: 1 }}
+                        />
+                        <span className="hint">전체 문항 수</span>
+                      </div>
+                    )
+                  }
+                  if (kind === 'fixedUnit') {
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={g.value || ''}
+                          onChange={(e) => updateGoal(index, { value: Number(e.target.value) })}
+                          style={{ flex: 1 }}
+                        />
+                        <span className="hint">{g.unit}</span>
+                      </div>
+                    )
+                  }
+                  return (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <input
+                          type="number"
+                          min="0"
+                          value={g.value || ''}
+                          onChange={(e) => updateGoal(index, { value: Number(e.target.value) })}
+                        />
+                        <span className="hint">수량</span>
+                      </div>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <input
+                          value={g.unit}
+                          onChange={(e) => updateGoal(index, { unit: e.target.value })}
+                          placeholder="예: 페이지, 개"
+                        />
+                        <span className="hint">단위</span>
+                      </div>
+                    </div>
+                  )
+                })()}
                 <button type="button" className="secondary" onClick={() => removeGoal(index)}>
                   이 목표 삭제
                 </button>
