@@ -168,125 +168,148 @@ export default function EntryPage() {
 
       <DdayBanner season={season} />
 
-      <h2>학습 기록</h2>
-      <label htmlFor="date">날짜</label>
-      <input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} max={todayStr()} />
-
       {entryLoading ? (
         <p className="hint">불러오는 중...</p>
       ) : (
         <form onSubmit={handleSaveEntry}>
-          <label htmlFor="method">학습 수단 (쉼표로 구분)</label>
-          <input
-            id="method"
-            list="method-presets"
-            value={studyMethod}
-            onChange={(e) => setStudyMethod(e.target.value)}
-            placeholder="예: 인강, 문제집"
-          />
-          <datalist id="method-presets">
-            {METHOD_PRESETS.map((m) => (
-              <option key={m} value={m} />
-            ))}
-          </datalist>
+          <div className="today-card">
+            <span className="today-label">{date === todayStr() ? '오늘 기록' : `${date} 기록`}</span>
 
-          <label htmlFor="topic">학습 내용 (쉼표로 구분)</label>
-          <input
-            id="topic"
-            list="topic-presets"
-            value={studyTopic}
-            onChange={(e) => setStudyTopic(e.target.value)}
-            placeholder="예: 문법, 어휘"
-          />
-          <datalist id="topic-presets">
-            {TOPIC_PRESETS.map((t) => (
-              <option key={t} value={t} />
-            ))}
-          </datalist>
-
-          <label htmlFor="amount">학습량</label>
-          <div style={{ display: 'flex', gap: 8 }}>
+            <label htmlFor="method">학습 수단 (쉼표로 구분)</label>
             <input
-              id="amount"
-              type="number"
-              min="0"
-              value={amountValue}
-              onChange={(e) => setAmountValue(e.target.value)}
-              required
+              id="method"
+              list="method-presets"
+              value={studyMethod}
+              onChange={(e) => setStudyMethod(e.target.value)}
+              placeholder="예: 인강, 문제집"
             />
-            <input value={amountUnit} onChange={(e) => setAmountUnit(e.target.value)} placeholder="단위(분/페이지 등)" />
-          </div>
+            <datalist id="method-presets">
+              {METHOD_PRESETS.map((m) => (
+                <option key={m} value={m} />
+              ))}
+            </datalist>
 
-          <label htmlFor="notes">메모 (격주 모임 공유용)</label>
-          <textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <label htmlFor="topic">학습 내용 (쉼표로 구분)</label>
+            <input
+              id="topic"
+              list="topic-presets"
+              value={studyTopic}
+              onChange={(e) => setStudyTopic(e.target.value)}
+              placeholder="예: 문법, 어휘"
+            />
+            <datalist id="topic-presets">
+              {TOPIC_PRESETS.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
 
-          {achievementRate !== null ? (
-            <p className="hint">오늘 달성률: {achievementRate}%</p>
-          ) : entry ? (
-            <p className="hint">달성률 계산 불가 (목표 미설정 또는 단위 불일치)</p>
-          ) : null}
+            <label htmlFor="amount">학습량</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                id="amount"
+                type="number"
+                min="0"
+                value={amountValue}
+                onChange={(e) => setAmountValue(e.target.value)}
+                required
+              />
+              <input value={amountUnit} onChange={(e) => setAmountUnit(e.target.value)} placeholder="단위(분/페이지 등)" />
+            </div>
 
-          {saveError && <p className="error">{saveError}</p>}
-          <button type="submit" disabled={saving}>
-            {saving ? '저장 중...' : entry ? '수정 저장' : '기록 저장'}
-          </button>
-          {entry && (
-            <button type="button" className="secondary" onClick={handleDeleteEntry}>
-              이 날짜 기록 삭제
+            {achievementRate !== null ? (
+              <p className="progress-hint">
+                목표 {entry?.goal_snapshot?.value}
+                {entry?.goal_snapshot?.unit} 중 달성률 {achievementRate}%
+              </p>
+            ) : entry ? (
+              <p className="progress-hint">달성률 계산 불가 (목표 미설정 또는 단위 불일치)</p>
+            ) : null}
+
+            <label htmlFor="notes">메모 (격주 모임 공유용)</label>
+            <textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+
+            {saveError && <p className="error">{saveError}</p>}
+            <button type="submit" disabled={saving}>
+              {saving ? '저장 중...' : entry ? '수정 저장' : '기록 저장'}
             </button>
-          )}
+            {entry && (
+              <button type="button" className="secondary" onClick={handleDeleteEntry}>
+                이 날짜 기록 삭제
+              </button>
+            )}
+          </div>
         </form>
       )}
 
-      <h2>목표 설정</h2>
-      <form onSubmit={handleSaveGoal}>
-        <label htmlFor="goal-value">하루 목표</label>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            id="goal-value"
-            type="number"
-            min="0"
-            value={goalValue}
-            onChange={(e) => setGoalValue(e.target.value)}
-            required
-          />
-          <input value={goalUnit} onChange={(e) => setGoalUnit(e.target.value)} placeholder="단위" />
+      <details className="accordion">
+        <summary>다른 날짜 기록 보기 / 수정</summary>
+        <div className="acc-body">
+          <label htmlFor="date">날짜</label>
+          <input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} max={todayStr()} />
         </div>
-        {goal && (
-          <p className="hint">
-            현재 목표: {goal.value}
-            {goal.unit}/일
-          </p>
-        )}
-        {goalMessage && <p className="hint">{goalMessage}</p>}
-        <button type="submit">목표 저장</button>
-      </form>
+      </details>
 
-      <h2>PIN 변경</h2>
-      <form onSubmit={handleChangePin}>
-        <label htmlFor="current-pin">현재 PIN</label>
-        <input
-          id="current-pin"
-          type="password"
-          inputMode="numeric"
-          maxLength={4}
-          value={currentPin}
-          onChange={(e) => setCurrentPin(e.target.value)}
-          required
-        />
-        <label htmlFor="new-pin">새 PIN</label>
-        <input
-          id="new-pin"
-          type="password"
-          inputMode="numeric"
-          maxLength={4}
-          value={newPin}
-          onChange={(e) => setNewPin(e.target.value)}
-          required
-        />
-        {pinMessage && <p className="hint">{pinMessage}</p>}
-        <button type="submit">PIN 변경</button>
-      </form>
+      <details className="accordion">
+        <summary>목표 설정</summary>
+        <div className="acc-body">
+          <form onSubmit={handleSaveGoal}>
+            <label htmlFor="goal-value">하루 목표</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                id="goal-value"
+                type="number"
+                min="0"
+                value={goalValue}
+                onChange={(e) => setGoalValue(e.target.value)}
+                required
+              />
+              <input value={goalUnit} onChange={(e) => setGoalUnit(e.target.value)} placeholder="단위" />
+            </div>
+            {goal && (
+              <p className="hint">
+                현재 목표: {goal.value}
+                {goal.unit}/일
+              </p>
+            )}
+            {goalMessage && <p className="hint">{goalMessage}</p>}
+            <button type="submit" className="secondary">
+              목표 저장
+            </button>
+          </form>
+        </div>
+      </details>
+
+      <details className="accordion">
+        <summary>계정 설정 (PIN 변경)</summary>
+        <div className="acc-body">
+          <form onSubmit={handleChangePin}>
+            <label htmlFor="current-pin">현재 PIN</label>
+            <input
+              id="current-pin"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={currentPin}
+              onChange={(e) => setCurrentPin(e.target.value)}
+              required
+            />
+            <label htmlFor="new-pin">새 PIN</label>
+            <input
+              id="new-pin"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={newPin}
+              onChange={(e) => setNewPin(e.target.value)}
+              required
+            />
+            {pinMessage && <p className="hint">{pinMessage}</p>}
+            <button type="submit" className="secondary">
+              PIN 변경
+            </button>
+          </form>
+        </div>
+      </details>
     </div>
   )
 }

@@ -37,7 +37,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div>
+    <div className="login-shell">
       <h1>Study Planner</h1>
       <p className="hint">이름을 선택하고 PIN을 입력하세요.</p>
       <form onSubmit={handleSubmit}>

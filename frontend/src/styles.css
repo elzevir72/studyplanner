@@ -17,6 +17,27 @@ body {
   padding: 16px;
 }
 
+/* 데스크탑: 좁은 카드가 화면 중앙에 덩그러니 뜨는 대신, 여유 있는 폭 + 은은한 카드 프레임으로 전환 */
+@media (min-width: 768px) {
+  body {
+    padding: 40px 20px;
+  }
+
+  #root {
+    max-width: 720px;
+    min-height: auto;
+    border-radius: 16px;
+    box-shadow: 0 8px 28px -12px rgba(20, 24, 40, 0.16);
+    padding: 32px 40px;
+  }
+}
+
+/* 로그인 화면은 폭이 넓을 이유가 없어 데스크탑에서도 좁게 유지 */
+.login-shell {
+  max-width: 360px;
+  margin: 0 auto;
+}
+
 h1 {
   font-size: 1.3rem;
 }
@@ -152,4 +173,144 @@ td {
 .feed-item .meta {
   color: #888;
   font-size: 0.78rem;
+}
+
+/* ---- 대시보드: 요약 칩 + 참가자별 진행률 바 ---- */
+.summary-strip {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.summary-chip {
+  flex: 1;
+  background: #f3f4fa;
+  border-radius: 8px;
+  padding: 10px 10px;
+  text-align: center;
+}
+
+.summary-chip .num {
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-chip .lbl {
+  font-size: 0.68rem;
+  color: #888;
+  margin-top: 2px;
+}
+
+.section-title-sm {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 20px 0 8px;
+}
+
+.person-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.person-row .name {
+  width: 64px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.person-row .bar-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: #eef0f6;
+  overflow: hidden;
+}
+
+.person-row .bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: #4a6cf7;
+}
+
+.person-row .bar-fill.low {
+  background: #c0392b;
+}
+
+.person-row .pct {
+  width: 44px;
+  text-align: right;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.person-row.missing .name,
+.person-row.missing .pct {
+  color: #aaa;
+}
+
+.person-row.missing .bar-track {
+  background: repeating-linear-gradient(135deg, #e5e5ea, #e5e5ea 3px, transparent 3px, transparent 6px);
+}
+
+/* ---- 개인 기록: 오늘 카드 강조 + 부가 기능 접이식 ---- */
+.today-card {
+  background: #eef1ff;
+  border-radius: 10px;
+  padding: 14px 14px 6px;
+  margin-top: 12px;
+}
+
+.today-card .today-label {
+  font-size: 0.7rem;
+  color: #3a4ba0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.today-card label {
+  color: #3a4ba0;
+}
+
+.today-card .progress-hint {
+  color: #3a4ba0;
+  font-size: 0.85rem;
+  margin: 8px 0 0;
+}
+
+.accordion {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+
+.accordion summary {
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  color: #555;
+}
+
+.accordion summary::-webkit-details-marker {
+  display: none;
+}
+
+.accordion .acc-body {
+  padding: 0 14px 14px;
 }

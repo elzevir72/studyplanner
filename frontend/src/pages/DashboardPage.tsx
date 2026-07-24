@@ -106,31 +106,56 @@ export default function DashboardPage() {
       {loading ? (
         <p className="hint">불러오는 중...</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>이름</th>
-              <th>기록 수</th>
-              <th>달성률</th>
-            </tr>
-          </thead>
-          <tbody>
-            {participants.map((p) => (
-              <tr key={p.user_id}>
-                <td>{p.display_name}</td>
-                <td>{p.entry_count}</td>
-                <td>{p.achievement_rate !== null ? `${p.achievement_rate}%` : '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          <div className="summary-strip">
+            <div className="summary-chip">
+              <div className="num">{participants.length + notParticipated.length}명</div>
+              <div className="lbl">참여 인원</div>
+            </div>
+            <div className="summary-chip">
+              <div className="num">
+                {participants.filter((p) => p.entry_count > 0).length}명
+              </div>
+              <div className="lbl">기록 있음</div>
+            </div>
+            <div className="summary-chip">
+              <div className="num">
+                {(() => {
+                  const rates = participants.map((p) => p.achievement_rate).filter((r): r is number => r !== null)
+                  if (rates.length === 0) return '-'
+                  return `${Math.round(rates.reduce((a, b) => a + b, 0) / rates.length)}%`
+                })()}
+              </div>
+              <div className="lbl">평균 달성률</div>
+            </div>
+          </div>
+
+          <div className="section-title-sm">참가자별 달성률</div>
+          {participants.map((p) => (
+            <div className="person-row" key={p.user_id}>
+              <span className="name">{p.display_name}</span>
+              <div className="bar-track">
+                {p.achievement_rate !== null && (
+                  <div
+                    className={`bar-fill${p.achievement_rate < 50 ? ' low' : ''}`}
+                    style={{ width: `${Math.min(100, p.achievement_rate)}%` }}
+                  />
+                )}
+              </div>
+              <span className="pct">{p.achievement_rate !== null ? `${p.achievement_rate}%` : `기록 ${p.entry_count}`}</span>
+            </div>
+          ))}
+          {notParticipated.map((userId) => (
+            <div className="person-row missing" key={userId}>
+              <span className="name">{displayNameOf(userId)}</span>
+              <div className="bar-track" />
+              <span className="pct">기록 전</span>
+            </div>
+          ))}
+        </>
       )}
 
-      {notParticipated.length > 0 && (
-        <p className="hint">아직 기록이 없어요: {notParticipated.map(displayNameOf).join(', ')}</p>
-      )}
-
-      <h2>공유 메모</h2>
+      <div className="section-title-sm">공유 메모</div>
       {feedItems.length === 0 && <p className="hint">공유된 메모가 없습니다.</p>}
       {feedItems.map((item) => (
         <div className="feed-item" key={`${item.user_id}-${item.date}`}>
