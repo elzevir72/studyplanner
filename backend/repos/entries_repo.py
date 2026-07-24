@@ -43,25 +43,22 @@ def list_entries_by_date_range(date_from: str, date_to: str) -> list[dict]:
 def put_entry(
     user_id: str,
     date: str,
-    study_method: list[str],
-    study_topic: list[str],
-    amount: dict,
+    study_items: list[dict],
     notes: str,
-    goal_snapshot: dict | None,
+    goal_snapshot: list[dict] | None,
     season_id: str,
 ) -> dict:
+    """study_items: [{"method": str, "topics": [str], "amount": {"value", "unit"}}, ...]"""
     now = now_kst_iso()
     resp = _table().update_item(
         Key={"user_id": user_id, "date": date},
         UpdateExpression=(
-            "SET study_method = :sm, study_topic = :st, amount = :am, notes = :nt, "
+            "SET study_items = :si, notes = :nt, "
             "goal_snapshot = :gs, season_id = :sid, gsi_pk = :gp, "
             "created_at = if_not_exists(created_at, :now), updated_at = :now"
         ),
         ExpressionAttributeValues={
-            ":sm": study_method,
-            ":st": study_topic,
-            ":am": amount,
+            ":si": study_items,
             ":nt": notes,
             ":gs": goal_snapshot,
             ":sid": season_id,

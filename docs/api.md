@@ -41,9 +41,10 @@ Base path: `/api` (API Gateway → Lambda, Python). 인증이 필요한 엔드�
 ## 목표 설정
 | Method | Path | 설명 | 인증 |
 |---|---|---|---|
-| GET | `/users/{user_id}/goal` | 현재 목표(`daily_goal`) 조회 | 불필요 (공유 목적) |
-| PUT | `/users/{user_id}/goal` | 목표 설정/변경, `{value, unit}` | 필요 (본인만) |
+| GET | `/users/{user_id}/goal` | 현재 목표(`daily_goal`) 조회 — 수단별 목표 리스트 | 불필요 (공유 목적) |
+| PUT | `/users/{user_id}/goal` | 목표 설정/변경, `{goals: [{method, value, unit}, ...]}` | 필요 (본인만) |
 
+- 목표는 수단(`method`)별로 여러 개 설정 가능 (예: 인강 30분, 문제집 10페이지). 요청 시 목표 리스트 전체를 통째로 교체한다(부분 수정 아님).
 - 목표를 변경해도 과거 기록의 달성률에는 영향 없음 — 기록 시점의 목표가 `Entries.goal_snapshot`에 스냅샷으로 저장되어 있기 때문.
 
 ## 개인 학습 이력
@@ -55,7 +56,7 @@ Base path: `/api` (API Gateway → Lambda, Python). 인증이 필요한 엔드�
 | DELETE | `/entries/{user_id}/{date}` | 기록 삭제 | 필요 (본인만) |
 
 - 다른 사람의 `user_id`로는 조회는 가능(공유 목적)하되, 쓰기(PUT/DELETE)는 토큰의 `user_id`와 경로의 `user_id`가 일치할 때만 허용.
-- `PUT /entries/{user_id}/{date}` 요청 바디: `study_method`, `study_topic`, `amount`, `notes` 등. 달성률(%)은 클라이언트가 보내지 않으며, 서버가 저장 시점의 `daily_goal`을 `goal_snapshot`으로 복사해 함께 저장한다.
+- `PUT /entries/{user_id}/{date}` 요청 바디: `{study_items: [{method, topics, amount}, ...], notes}`. 하루에 여러 학습 수단을 각각 다른 내용/학습량으로 기록할 수 있다 (예: 인강으로 문법·청해 30분, 문제집으로 어휘 5페이지). 달성률(%)은 클라이언트가 보내지 않으며, 서버가 저장 시점의 `daily_goal`을 `goal_snapshot`으로 복사해 함께 저장한다.
 
 ## 대시보드 / 그룹 뷰
 | Method | Path | 설명 | 인증 |

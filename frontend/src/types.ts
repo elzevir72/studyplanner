@@ -3,18 +3,28 @@ export interface UserSummary {
   display_name: string
 }
 
-export interface Goal {
+export interface Amount {
   value: number
   unit: string
+}
+
+export interface MethodGoal {
+  method: string
+  value: number
+  unit: string
+}
+
+export interface StudyItem {
+  method: string
+  topics: string[]
+  amount: Amount
 }
 
 export interface Entry {
   user_id: string
   date: string
-  study_method: string[]
-  study_topic: string[]
-  amount: Goal
-  goal_snapshot: Goal | null
+  study_items: StudyItem[]
+  goal_snapshot: MethodGoal[] | null
   season_id: string
   notes: string
   created_at: string

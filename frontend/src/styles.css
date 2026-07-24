@@ -311,6 +311,57 @@ td {
   margin: 8px 0 0;
 }
 
+.tag-select {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag-btn {
+  width: auto;
+  margin-top: 0;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-mid);
+}
+
+.tag-btn:hover {
+  background: var(--surface);
+}
+
+.study-item-block {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 10px 4px;
+  margin-top: 10px;
+  background: #fff;
+}
+
+.study-item-block .secondary {
+  margin-top: 10px;
+}
+
+.tag-btn.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.tag-btn.selected:hover {
+  background: var(--accent-strong);
+}
+
+.today-card .tag-btn {
+  background: #fff;
+}
+
+.today-card .tag-btn.selected {
+  background: var(--accent);
+}
+
 .accordion {
   border: 1px solid var(--line);
   border-radius: 8px;

@@ -56,11 +56,11 @@ def update_pin(user_id: str, pin_hash: str) -> None:
     )
 
 
-def set_goal(user_id: str, value: float, unit: str) -> dict:
-    goal = {"value": value, "unit": unit}
+def set_goal(user_id: str, goals: list[dict]) -> list[dict]:
+    """goals: [{"method": str, "value": number, "unit": str}, ...] — 수단별 목표 전체를 통째로 교체."""
     _table().update_item(
         Key={"user_id": user_id},
         UpdateExpression="SET daily_goal = :goal",
-        ExpressionAttributeValues={":goal": goal},
+        ExpressionAttributeValues={":goal": goals},
     )
-    return goal
+    return goals

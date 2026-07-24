@@ -45,10 +45,12 @@ def set_goal(event, context):
     require_participant_self(event, user_id)
 
     body = parse_body(event)
-    value = body.get("value")
-    unit = body.get("unit")
-    if value is None or not unit:
-        raise ValueError("value and unit are required")
+    goals = body.get("goals")
+    if not isinstance(goals, list) or not goals:
+        raise ValueError("goals must be a non-empty list of {method, value, unit}")
+    for g in goals:
+        if not g.get("method") or g.get("value") is None or not g.get("unit"):
+            raise ValueError("each goal requires method, value and unit")
 
-    goal = users_repo.set_goal(user_id, value, unit)
-    return responses.ok(goal)
+    saved = users_repo.set_goal(user_id, goals)
+    return responses.ok(saved)

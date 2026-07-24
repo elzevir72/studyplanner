@@ -10,16 +10,24 @@ import {
   putEntry,
   setGoal,
 } from '../api/client'
-import { calcAchievementRate } from '../achievement'
+import { calcEntryAchievementRate } from '../achievement'
 import { clearParticipantSession, getParticipantSession } from '../auth'
 import DdayBanner from '../components/DdayBanner'
-import type { Entry, Goal, Season } from '../types'
+import type { Entry, MethodGoal, Season, StudyItem } from '../types'
 
 const METHOD_PRESETS = ['인강', '문제집', '단어암기', '모의고사']
 const TOPIC_PRESETS = ['문법', '어휘', '한자', '청해', '독해']
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+function emptyStudyItem(): StudyItem {
+  return { method: '', topics: [], amount: { value: 0, unit: '분' } }
+}
+
+function toggleTopic(topics: string[], topic: string): string[] {
+  return topics.includes(topic) ? topics.filter((t) => t !== topic) : [...topics, topic]
 }
 
 export default function EntryPage() {
@@ -31,17 +39,12 @@ export default function EntryPage() {
   const [entry, setEntry] = useState<Entry | null>(null)
   const [entryLoading, setEntryLoading] = useState(false)
 
-  const [studyMethod, setStudyMethod] = useState('')
-  const [studyTopic, setStudyTopic] = useState('')
-  const [amountValue, setAmountValue] = useState('')
-  const [amountUnit, setAmountUnit] = useState('분')
+  const [studyItems, setStudyItems] = useState<StudyItem[]>([emptyStudyItem()])
   const [notes, setNotes] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const [goal, setGoalState] = useState<Goal | null>(null)
-  const [goalValue, setGoalValue] = useState('')
-  const [goalUnit, setGoalUnit] = useState('분')
+  const [goals, setGoals] = useState<MethodGoal[]>([])
   const [goalMessage, setGoalMessage] = useState<string | null>(null)
 
   const [currentPin, setCurrentPin] = useState('')
@@ -50,13 +53,7 @@ export default function EntryPage() {
 
   useEffect(() => {
     currentSeason().then(setSeason).catch(() => setSeason(null))
-    getGoal(session.user_id).then((g) => {
-      setGoalState(g)
-      if (g) {
-        setGoalValue(String(g.value))
-        setGoalUnit(g.unit)
-      }
-    })
+    getGoal(session.user_id).then((g) => setGoals(g ?? []))
   }, [session.user_id])
 
   useEffect(() => {
@@ -65,18 +62,13 @@ export default function EntryPage() {
     getEntry(session.user_id, date, session.token)
       .then((e) => {
         setEntry(e)
-        setStudyMethod(e.study_method.join(', '))
-        setStudyTopic(e.study_topic.join(', '))
-        setAmountValue(String(e.amount.value))
-        setAmountUnit(e.amount.unit)
+        setStudyItems(e.study_items.length > 0 ? e.study_items : [emptyStudyItem()])
         setNotes(e.notes)
       })
       .catch((e) => {
         if (e instanceof ApiError && e.status === 404) {
           setEntry(null)
-          setStudyMethod('')
-          setStudyTopic('')
-          setAmountValue('')
+          setStudyItems([emptyStudyItem()])
           setNotes('')
         } else {
           setSaveError('기록을 불러오지 못했습니다.')
@@ -85,28 +77,26 @@ export default function EntryPage() {
       .finally(() => setEntryLoading(false))
   }, [date, session.user_id, session.token])
 
-  const achievementRate = entry ? calcAchievementRate(entry.amount, entry.goal_snapshot) : null
+  const achievementRate = entry ? calcEntryAchievementRate(entry.study_items, entry.goal_snapshot) : null
+
+  const updateItem = (index: number, patch: Partial<StudyItem>) => {
+    setStudyItems((items) => items.map((item, i) => (i === index ? { ...item, ...patch } : item)))
+  }
+
+  const addStudyItem = () => setStudyItems((items) => [...items, emptyStudyItem()])
+  const removeStudyItem = (index: number) => setStudyItems((items) => items.filter((_, i) => i !== index))
 
   const handleSaveEntry = async (e: React.FormEvent) => {
     e.preventDefault()
     setSaveError(null)
-    if (!amountValue) {
-      setSaveError('학습량을 입력해주세요.')
+    const validItems = studyItems.filter((item) => item.method && item.amount.value > 0)
+    if (validItems.length === 0) {
+      setSaveError('학습 수단과 학습량을 하나 이상 입력해주세요.')
       return
     }
     setSaving(true)
     try {
-      const saved = await putEntry(
-        session.user_id,
-        date,
-        {
-          study_method: studyMethod.split(',').map((s) => s.trim()).filter(Boolean),
-          study_topic: studyTopic.split(',').map((s) => s.trim()).filter(Boolean),
-          amount: { value: Number(amountValue), unit: amountUnit },
-          notes,
-        },
-        session.token,
-      )
+      const saved = await putEntry(session.user_id, date, { study_items: validItems, notes }, session.token)
       setEntry(saved)
     } catch (err) {
       setSaveError(err instanceof ApiError ? err.message : '저장에 실패했습니다.')
@@ -120,18 +110,27 @@ export default function EntryPage() {
     if (!confirm('이 날짜의 기록을 삭제할까요?')) return
     await deleteEntry(session.user_id, date, session.token)
     setEntry(null)
-    setStudyMethod('')
-    setStudyTopic('')
-    setAmountValue('')
+    setStudyItems([emptyStudyItem()])
     setNotes('')
   }
+
+  const updateGoal = (index: number, patch: Partial<MethodGoal>) => {
+    setGoals((gs) => gs.map((g, i) => (i === index ? { ...g, ...patch } : g)))
+  }
+  const addGoal = () => setGoals((gs) => [...gs, { method: '', value: 0, unit: '분' }])
+  const removeGoal = (index: number) => setGoals((gs) => gs.filter((_, i) => i !== index))
 
   const handleSaveGoal = async (e: React.FormEvent) => {
     e.preventDefault()
     setGoalMessage(null)
+    const validGoals = goals.filter((g) => g.method && g.value > 0)
+    if (validGoals.length === 0) {
+      setGoalMessage('수단과 목표량을 하나 이상 입력해주세요.')
+      return
+    }
     try {
-      const g = await setGoal(session.user_id, { value: Number(goalValue), unit: goalUnit }, session.token)
-      setGoalState(g)
+      const saved = await setGoal(session.user_id, validGoals, session.token)
+      setGoals(saved)
       setGoalMessage('목표가 저장되었습니다.')
     } catch (err) {
       setGoalMessage(err instanceof ApiError ? err.message : '목표 저장에 실패했습니다.')
@@ -175,52 +174,70 @@ export default function EntryPage() {
           <div className="today-card">
             <span className="today-label">{date === todayStr() ? '오늘 기록' : `${date} 기록`}</span>
 
-            <label htmlFor="method">학습 수단 (쉼표로 구분)</label>
-            <input
-              id="method"
-              list="method-presets"
-              value={studyMethod}
-              onChange={(e) => setStudyMethod(e.target.value)}
-              placeholder="예: 인강, 문제집"
-            />
-            <datalist id="method-presets">
-              {METHOD_PRESETS.map((m) => (
-                <option key={m} value={m} />
-              ))}
-            </datalist>
+            {studyItems.map((item, index) => (
+              <div className="study-item-block" key={index}>
+                <label>학습 수단</label>
+                <div className="tag-select">
+                  {METHOD_PRESETS.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`tag-btn${item.method === m ? ' selected' : ''}`}
+                      onClick={() => updateItem(index, { method: m })}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  value={item.method}
+                  onChange={(e) => updateItem(index, { method: e.target.value })}
+                  placeholder="목록에 없으면 직접 입력"
+                />
 
-            <label htmlFor="topic">학습 내용 (쉼표로 구분)</label>
-            <input
-              id="topic"
-              list="topic-presets"
-              value={studyTopic}
-              onChange={(e) => setStudyTopic(e.target.value)}
-              placeholder="예: 문법, 어휘"
-            />
-            <datalist id="topic-presets">
-              {TOPIC_PRESETS.map((t) => (
-                <option key={t} value={t} />
-              ))}
-            </datalist>
+                <label>학습 내용 (여러 개 선택 가능)</label>
+                <div className="tag-select">
+                  {TOPIC_PRESETS.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      className={`tag-btn${item.topics.includes(t) ? ' selected' : ''}`}
+                      onClick={() => updateItem(index, { topics: toggleTopic(item.topics, t) })}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
 
-            <label htmlFor="amount">학습량</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                id="amount"
-                type="number"
-                min="0"
-                value={amountValue}
-                onChange={(e) => setAmountValue(e.target.value)}
-                required
-              />
-              <input value={amountUnit} onChange={(e) => setAmountUnit(e.target.value)} placeholder="단위(분/페이지 등)" />
-            </div>
+                <label>학습량</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="number"
+                    min="0"
+                    value={item.amount.value || ''}
+                    onChange={(e) => updateItem(index, { amount: { ...item.amount, value: Number(e.target.value) } })}
+                  />
+                  <input
+                    value={item.amount.unit}
+                    onChange={(e) => updateItem(index, { amount: { ...item.amount, unit: e.target.value } })}
+                    placeholder="단위(분/페이지 등)"
+                  />
+                </div>
+
+                {studyItems.length > 1 && (
+                  <button type="button" className="secondary" onClick={() => removeStudyItem(index)}>
+                    이 수단 삭제
+                  </button>
+                )}
+              </div>
+            ))}
+
+            <button type="button" className="secondary" onClick={addStudyItem}>
+              + 학습 수단 추가
+            </button>
 
             {achievementRate !== null ? (
-              <p className="progress-hint">
-                목표 {entry?.goal_snapshot?.value}
-                {entry?.goal_snapshot?.unit} 중 달성률 {achievementRate}%
-              </p>
+              <p className="progress-hint">오늘 달성률 {achievementRate}%</p>
             ) : entry ? (
               <p className="progress-hint">달성률 계산 불가 (목표 미설정 또는 단위 불일치)</p>
             ) : null}
@@ -253,28 +270,46 @@ export default function EntryPage() {
         <summary>목표 설정</summary>
         <div className="acc-body">
           <form onSubmit={handleSaveGoal}>
-            <label htmlFor="goal-value">하루 목표</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                id="goal-value"
-                type="number"
-                min="0"
-                value={goalValue}
-                onChange={(e) => setGoalValue(e.target.value)}
-                required
-              />
-              <input value={goalUnit} onChange={(e) => setGoalUnit(e.target.value)} placeholder="단위" />
-            </div>
-            {goal && (
-              <p className="hint">
-                현재 목표: {goal.value}
-                {goal.unit}/일
-              </p>
-            )}
-            {goalMessage && <p className="hint">{goalMessage}</p>}
-            <button type="submit" className="secondary">
-              목표 저장
+            {goals.map((g, index) => (
+              <div className="study-item-block" key={index}>
+                <label>수단</label>
+                <div className="tag-select">
+                  {METHOD_PRESETS.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`tag-btn${g.method === m ? ' selected' : ''}`}
+                      onClick={() => updateGoal(index, { method: m })}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  value={g.method}
+                  onChange={(e) => updateGoal(index, { method: e.target.value })}
+                  placeholder="목록에 없으면 직접 입력"
+                />
+                <label>목표량</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    type="number"
+                    min="0"
+                    value={g.value || ''}
+                    onChange={(e) => updateGoal(index, { value: Number(e.target.value) })}
+                  />
+                  <input value={g.unit} onChange={(e) => updateGoal(index, { unit: e.target.value })} placeholder="단위" />
+                </div>
+                <button type="button" className="secondary" onClick={() => removeGoal(index)}>
+                  이 목표 삭제
+                </button>
+              </div>
+            ))}
+            <button type="button" className="secondary" onClick={addGoal}>
+              + 수단별 목표 추가
             </button>
+            {goalMessage && <p className="hint">{goalMessage}</p>}
+            <button type="submit">목표 저장</button>
           </form>
         </div>
       </details>

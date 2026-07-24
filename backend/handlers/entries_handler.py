@@ -31,9 +31,12 @@ def put_entry(event, context):
     require_participant_self(event, user_id)
 
     body = parse_body(event)
-    amount = body.get("amount")
-    if not amount:
-        raise ValueError("amount is required")
+    study_items = body.get("study_items")
+    if not isinstance(study_items, list) or not study_items:
+        raise ValueError("study_items must be a non-empty list of {method, topics, amount}")
+    for item in study_items:
+        if not item.get("method") or not item.get("amount"):
+            raise ValueError("each study_item requires method and amount")
 
     user = users_repo.get_user(user_id)
     if not user:
@@ -46,9 +49,7 @@ def put_entry(event, context):
     entry = entries_repo.put_entry(
         user_id=user_id,
         date=date,
-        study_method=body.get("study_method", []),
-        study_topic=body.get("study_topic", []),
-        amount=amount,
+        study_items=study_items,
         notes=body.get("notes", ""),
         goal_snapshot=user.get("daily_goal"),
         season_id=current_season["season_id"],

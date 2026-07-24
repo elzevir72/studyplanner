@@ -10,7 +10,7 @@
 | `user_id` (PK) | string | 예: `u1` |
 | `display_name` | string | 화면에 표시될 이름 |
 | `pin_hash` | string | 4자리 PIN의 해시 (bcrypt) |
-| `daily_goal` | map `{ value: number, unit: string }` \| null | 사용자가 스스로 설정하는 하루 학습 목표 (예: `{value: 120, unit: "분"}`). 언제든 본인이 수정 가능. 참가자별 가용 학습 시간 편차가 크고(직장인 등 상황이 제각각) 참여도 불규칙적이라 그룹 공통 목표를 두지 않음 — 미설정 시 null |
+| `daily_goal` | list\<map `{ method: string, value: number, unit: string }`\> \| null | 사용자가 스스로 설정하는 하루 학습 목표. **수단(method)별로 여러 개 설정 가능** (예: `[{method:"인강", value:30, unit:"분"}, {method:"문제집", value:10, unit:"페이지"}]`) — 수단마다 학습 단위가 다를 수 있어서(시간 vs 분량) 목표도 수단별로 분리. 언제든 본인이 전체 리스트를 교체하는 방식으로 수정 가능. 참가자별 가용 학습 시간 편차가 크고(직장인 등 상황이 제각각) 참여도 불규칙적이라 그룹 공통 목표를 두지 않음 — 미설정 시 null |
 | `status` | string (`"active"` \| `"inactive"`) | 탈퇴(스터디 중단) 시 `inactive`로 전환. 삭제하지 않고 데이터는 그대로 보존. 기본값 `active` |
 | `created_at` | string (ISO8601) | |
 
@@ -43,18 +43,17 @@ day-by-day 학습 이력 본체.
 |---|---|---|
 | `user_id` (PK) | string | |
 | `date` (SK) | string (`YYYY-MM-DD`) | |
-| `study_method` | list\<string\> | 학습 수단 태그. 자유 입력 + 자동완성 프리셋 (JLPT 그룹 예시: `인강`/`문제집`/`단어암기`/`모의고사`) |
-| `study_topic` | list\<string\> | 학습 내용 태그 (JLPT 그룹 예시: `문법`/`어휘`/`한자`/`청해`/`독해`) |
-| `amount` | map `{ value: number, unit: string }` | 학습량 (예: `{value: 120, unit: "분"}`). unit은 자유 문자열 — **사람/기록마다 다르므로 그룹 합산 집계에 쓰지 않음** |
-| `goal_snapshot` | map `{ value: number, unit: string }` \| null | 이 기록을 작성/수정한 시점의 `Users.daily_goal` 스냅샷. 이후 사용자가 목표를 바꿔도 과거 기록의 달성률은 이 값 기준으로 고정되어 소급 변경되지 않음 |
+| `study_items` | list\<map `{ method: string, topics: list\<string\>, amount: {value: number, unit: string} }`\> | 하루의 학습 내역. **수단(method)마다 별도 항목**으로 나뉘며, 각 항목이 자기만의 학습 내용(topics)과 학습량(amount)을 가진다 — 예: `[{method:"인강", topics:["문법","청해"], amount:{value:30, unit:"분"}}, {method:"문제집", topics:["어휘"], amount:{value:5, unit:"페이지"}}]`. method는 자유 입력 + 프리셋(JLPT 그룹 예시: `인강`/`문제집`/`단어암기`/`모의고사`), topics도 프리셋(`문법`/`어휘`/`한자`/`청해`/`독해`) + 자유 입력. amount의 unit은 자유 문자열 — **사람/기록/수단마다 다르므로 그룹 합산 집계에 쓰지 않음** |
+| `goal_snapshot` | list\<map `{ method: string, value: number, unit: string }`\> \| null | 이 기록을 작성/수정한 시점의 `Users.daily_goal` 스냅샷(수단별 목표 리스트 그대로). 이후 사용자가 목표를 바꿔도 과거 기록의 달성률은 이 값 기준으로 고정되어 소급 변경되지 않음 |
 | `season_id` | string | 작성 시점의 현재 시즌(`Seasons.season_id`). 자동 태깅 — 사용자가 직접 선택하지 않음 |
-| `notes` | string | 자유 기술 (오답노트/메모, 마크다운 허용). 그룹 공유 피드 및 **격주 모임 사전 공유 자료**로 사용 |
+| `notes` | string | 자유 기술 (오답노트/메모, 마크다운 허용). 수단별이 아니라 그날 기록 전체에 하나. 그룹 공유 피드 및 **격주 모임 사전 공유 자료**로 사용 |
 | `created_at` / `updated_at` | string (ISO8601) | |
 
 ### 달성률(achievement rate) 계산
-- 별도로 저장하지 않고 **읽기 시점에 `amount`와 `goal_snapshot`으로부터 계산**하는 파생값(순수 함수).
-- `amount.unit === goal_snapshot.unit`일 때만 계산: `round(amount.value / goal_snapshot.value * 100)`.
-- 단위가 다르거나 `goal_snapshot`이 없으면(목표 미설정 시점의 기록) 달성률 없음(`null`) — UI에서는 "목표 미설정"으로 표기.
+- 별도로 저장하지 않고 **읽기 시점에 `study_items`와 `goal_snapshot`으로부터 계산**하는 파생값(순수 함수).
+- `goal_snapshot`의 각 수단(method)에 대해: 그날 `study_items`에 같은 method가 있으면 `round(amount.value / goal.value * 100)`, unit이 다르면 그 수단은 비교 불가로 평균에서 제외, **그 method로 아예 기록을 안 했으면 0%로 평균에 포함**(목표를 안 채운 것도 반영되어야 하므로).
+- 위에서 구한 수단별 비율들의 평균이 그날의 달성률. 계산 가능한 수단이 하나도 없으면(목표 자체가 없거나 전부 단위 불일치) `null` — UI에서는 "목표 미설정"으로 표기.
+- 예: 목표가 `인강 30분`, `문제집 10페이지`이고 오늘 인강 6분만 기록했다면 → 인강 20%, 문제집 0% → 평균 10%.
 - 기존에 있던 `goal_achieved: boolean` 필드는 이 방식으로 대체되어 더 이상 사용하지 않음.
 
 ### GSI: `ByDate`

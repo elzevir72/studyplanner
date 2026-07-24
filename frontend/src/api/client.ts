@@ -1,4 +1,4 @@
-import type { DashboardResponse, Entry, FeedItem, Goal, Season, UserSummary } from '../types'
+import type { DashboardResponse, Entry, FeedItem, MethodGoal, Season, StudyItem, UserSummary } from '../types'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -42,10 +42,10 @@ export const changePin = (user_id: string, current_pin: string, new_pin: string,
   )
 
 // ---------- 목표 ----------
-export const getGoal = (user_id: string) => request<Goal | null>(`/api/users/${user_id}/goal`)
+export const getGoal = (user_id: string) => request<MethodGoal[] | null>(`/api/users/${user_id}/goal`)
 
-export const setGoal = (user_id: string, goal: Goal, token: string) =>
-  request<Goal>(`/api/users/${user_id}/goal`, { method: 'PUT', body: JSON.stringify(goal) }, token)
+export const setGoal = (user_id: string, goals: MethodGoal[], token: string) =>
+  request<MethodGoal[]>(`/api/users/${user_id}/goal`, { method: 'PUT', body: JSON.stringify({ goals }) }, token)
 
 // ---------- 개인 기록 ----------
 export const listEntries = (user_id: string, from: string, to: string, token: string) =>
@@ -55,9 +55,7 @@ export const getEntry = (user_id: string, date: string, token: string) =>
   request<Entry>(`/api/entries/${user_id}/${date}`, {}, token)
 
 export interface PutEntryInput {
-  study_method: string[]
-  study_topic: string[]
-  amount: Goal
+  study_items: StudyItem[]
   notes: string
 }
 

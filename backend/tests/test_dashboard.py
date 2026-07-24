@@ -4,7 +4,10 @@ from backend.domain.dashboard import build_participant_summary, not_participated
 def test_build_participant_summary():
     user = {"user_id": "u1", "display_name": "A"}
     entries = [
-        {"amount": {"value": 60, "unit": "분"}, "goal_snapshot": {"value": 120, "unit": "분"}},
+        {
+            "study_items": [{"method": "인강", "topics": [], "amount": {"value": 60, "unit": "분"}}],
+            "goal_snapshot": [{"method": "인강", "value": 120, "unit": "분"}],
+        },
     ]
     summary = build_participant_summary(user, entries)
     assert summary == {
