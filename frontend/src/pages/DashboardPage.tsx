@@ -62,7 +62,7 @@ export default function DashboardPage() {
     navigate('/')
   }
 
-  const displayNameOf = (userId: string) => participants.find((p) => p.user_id === userId)?.display_name ?? userId
+  const notParticipatedSet = new Set(notParticipated)
 
   return (
     <div>
@@ -109,7 +109,7 @@ export default function DashboardPage() {
         <>
           <div className="summary-strip">
             <div className="summary-chip">
-              <div className="num">{participants.length + notParticipated.length}명</div>
+              <div className="num">{participants.length}명</div>
               <div className="lbl">참여 인원</div>
             </div>
             <div className="summary-chip">
@@ -131,27 +131,25 @@ export default function DashboardPage() {
           </div>
 
           <div className="section-title-sm">참가자별 달성률</div>
-          {participants.map((p) => (
-            <div className="person-row" key={p.user_id}>
-              <span className="name">{p.display_name}</span>
-              <div className="bar-track">
-                {p.achievement_rate !== null && (
-                  <div
-                    className={`bar-fill${p.achievement_rate < 50 ? ' low' : ''}`}
-                    style={{ width: `${Math.min(100, p.achievement_rate)}%` }}
-                  />
-                )}
+          {participants.map((p) => {
+            const missing = notParticipatedSet.has(p.user_id)
+            return (
+              <div className={`person-row${missing ? ' missing' : ''}`} key={p.user_id}>
+                <span className="name">{p.display_name}</span>
+                <div className="bar-track">
+                  {!missing && p.achievement_rate !== null && (
+                    <div
+                      className={`bar-fill${p.achievement_rate < 50 ? ' low' : ''}`}
+                      style={{ width: `${Math.min(100, p.achievement_rate)}%` }}
+                    />
+                  )}
+                </div>
+                <span className="pct">
+                  {missing ? '기록 전' : p.achievement_rate !== null ? `${p.achievement_rate}%` : `기록 ${p.entry_count}`}
+                </span>
               </div>
-              <span className="pct">{p.achievement_rate !== null ? `${p.achievement_rate}%` : `기록 ${p.entry_count}`}</span>
-            </div>
-          ))}
-          {notParticipated.map((userId) => (
-            <div className="person-row missing" key={userId}>
-              <span className="name">{displayNameOf(userId)}</span>
-              <div className="bar-track" />
-              <span className="pct">기록 전</span>
-            </div>
-          ))}
+            )
+          })}
         </>
       )}
 
