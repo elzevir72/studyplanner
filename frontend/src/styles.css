@@ -1,3 +1,17 @@
+:root {
+  /* 잔잔한 파스텔 하늘색 톤 — 진한 인디고 대신 부드러운 스카이블루를 액센트로 사용 */
+  --accent: #6fa3c7;
+  --accent-strong: #5a91b6;
+  --accent-soft-bg: #eaf3f8;
+  --accent-text: #3f6d8a;
+  --warn: #d98a73;
+  --ink: #33393f;
+  --ink-mid: #6b7178;
+  --ink-dim: #98a0a8;
+  --line: #e6ebee;
+  --surface: #f6f8fa;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -5,8 +19,8 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f7f7fa;
-  color: #222;
+  background: var(--surface);
+  color: var(--ink);
 }
 
 #root {
@@ -50,7 +64,7 @@ h2 {
 label {
   display: block;
   font-size: 0.85rem;
-  color: #555;
+  color: var(--ink-mid);
   margin-top: 12px;
   margin-bottom: 4px;
 }
@@ -63,7 +77,7 @@ button {
   font-size: 1rem;
   padding: 10px;
   border-radius: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--line);
 }
 
 textarea {
@@ -72,16 +86,21 @@ textarea {
 }
 
 button {
-  background: #4a6cf7;
+  background: var(--accent);
   color: #fff;
   border: none;
   margin-top: 16px;
   cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+button:not(:disabled):hover {
+  background: var(--accent-strong);
 }
 
 button.secondary {
-  background: #eee;
-  color: #333;
+  background: var(--surface);
+  color: var(--ink);
 }
 
 button:disabled {
@@ -90,8 +109,8 @@ button:disabled {
 }
 
 .dday-banner {
-  background: #eef1ff;
-  color: #3a4ba0;
+  background: var(--accent-soft-bg);
+  color: var(--accent-text);
   padding: 10px 12px;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -99,13 +118,13 @@ button:disabled {
 }
 
 .error {
-  color: #c0392b;
+  color: var(--warn);
   font-size: 0.85rem;
   margin-top: 8px;
 }
 
 .hint {
-  color: #888;
+  color: var(--ink-dim);
   font-size: 0.8rem;
 }
 
@@ -121,8 +140,8 @@ nav button {
   margin-top: 0;
   padding: 8px 12px;
   font-size: 0.85rem;
-  background: #eee;
-  color: #333;
+  background: var(--surface);
+  color: var(--ink);
   text-decoration: none;
   border-radius: 6px;
 }
@@ -138,7 +157,7 @@ th,
 td {
   text-align: left;
   padding: 8px 6px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--line);
 }
 
 .view-tabs {
@@ -153,25 +172,25 @@ td {
 }
 
 .view-tabs button.active {
-  background: #4a6cf7;
+  background: var(--accent);
   color: #fff;
 }
 
 .card {
-  border: 1px solid #eee;
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 12px;
   margin-top: 12px;
 }
 
 .feed-item {
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--line);
   padding: 8px 0;
   font-size: 0.9rem;
 }
 
 .feed-item .meta {
-  color: #888;
+  color: var(--ink-dim);
   font-size: 0.78rem;
 }
 
@@ -184,7 +203,7 @@ td {
 
 .summary-chip {
   flex: 1;
-  background: #f3f4fa;
+  background: var(--surface);
   border-radius: 8px;
   padding: 10px 10px;
   text-align: center;
@@ -194,18 +213,19 @@ td {
   font-size: 1.1rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  color: var(--accent-text);
 }
 
 .summary-chip .lbl {
   font-size: 0.68rem;
-  color: #888;
+  color: var(--ink-dim);
   margin-top: 2px;
 }
 
 .section-title-sm {
   font-size: 0.72rem;
   font-weight: 700;
-  color: #888;
+  color: var(--ink-dim);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin: 20px 0 8px;
@@ -216,7 +236,7 @@ td {
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--line);
 }
 
 .person-row .name {
@@ -233,18 +253,18 @@ td {
   flex: 1;
   height: 8px;
   border-radius: 4px;
-  background: #eef0f6;
+  background: var(--line);
   overflow: hidden;
 }
 
 .person-row .bar-fill {
   height: 100%;
   border-radius: 4px;
-  background: #4a6cf7;
+  background: var(--accent);
 }
 
 .person-row .bar-fill.low {
-  background: #c0392b;
+  background: var(--warn);
 }
 
 .person-row .pct {
@@ -252,22 +272,22 @@ td {
   text-align: right;
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
-  color: #666;
+  color: var(--ink-mid);
   flex-shrink: 0;
 }
 
 .person-row.missing .name,
 .person-row.missing .pct {
-  color: #aaa;
+  color: var(--ink-dim);
 }
 
 .person-row.missing .bar-track {
-  background: repeating-linear-gradient(135deg, #e5e5ea, #e5e5ea 3px, transparent 3px, transparent 6px);
+  background: repeating-linear-gradient(135deg, var(--line), var(--line) 3px, transparent 3px, transparent 6px);
 }
 
 /* ---- 개인 기록: 오늘 카드 강조 + 부가 기능 접이식 ---- */
 .today-card {
-  background: #eef1ff;
+  background: var(--accent-soft-bg);
   border-radius: 10px;
   padding: 14px 14px 6px;
   margin-top: 12px;
@@ -275,24 +295,24 @@ td {
 
 .today-card .today-label {
   font-size: 0.7rem;
-  color: #3a4ba0;
+  color: var(--accent-text);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 700;
 }
 
 .today-card label {
-  color: #3a4ba0;
+  color: var(--accent-text);
 }
 
 .today-card .progress-hint {
-  color: #3a4ba0;
+  color: var(--accent-text);
   font-size: 0.85rem;
   margin: 8px 0 0;
 }
 
 .accordion {
-  border: 1px solid #eee;
+  border: 1px solid var(--line);
   border-radius: 8px;
   margin-top: 12px;
   overflow: hidden;
@@ -304,7 +324,7 @@ td {
   font-weight: 600;
   cursor: pointer;
   list-style: none;
-  color: #555;
+  color: var(--ink-mid);
 }
 
 .accordion summary::-webkit-details-marker {
