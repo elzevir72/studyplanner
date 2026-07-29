@@ -36,7 +36,10 @@ def meeting_rounds(meetings: list[dict], season_start: str) -> list[dict]:
     날짜순 정렬 후 회차를 매기고, 각 회차의 집계 구간(from~to)을 계산한다.
     구간은 "직전 회차 다음날 ~ 이번 회차 날짜"(1회차는 시즌 시작일부터 해당 모임 날짜까지).
     반환: [{"round": 1, "meeting_id": "...", "date": "2026-07-20", "memo": "...",
-            "from": "2026-07-01", "to": "2026-07-20"}, ...]
+            "created_by": "...", "from": "2026-07-01", "to": "2026-07-20"}, ...]
+
+    이 함수는 순수 함수라 "오늘 날짜"를 모른다 — 아직 지나지 않은(미래) 모임을 회차 집계에서
+    제외하는 건 호출자(핸들러) 책임이다. 이 함수에 넘기기 전에 지난 모임만 필터링해야 한다.
     """
     sorted_meetings = sorted(meetings, key=lambda m: m["date"])
     start_boundary = date.fromisoformat(season_start)
@@ -49,6 +52,7 @@ def meeting_rounds(meetings: list[dict], season_start: str) -> list[dict]:
                 "meeting_id": meeting["meeting_id"],
                 "date": meeting["date"],
                 "memo": meeting.get("memo", ""),
+                "created_by": meeting.get("created_by", ""),
                 "from": start_boundary.isoformat(),
                 "to": meeting["date"],
             }

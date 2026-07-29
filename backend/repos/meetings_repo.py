@@ -1,4 +1,9 @@
-"""Meetings 테이블 접근. 오프라인 모임 날짜/메모 — 참가자 누구나 등록/수정/삭제 가능."""
+"""
+Meetings 테이블 접근. 오프라인 모임 날짜/메모.
+
+수정은 참가자 누구나 가능하지만, 삭제는 등록자(created_by) 본인만 가능 —
+다른 사람이 실수로/의도적으로 남의 모임을 지우는 사고를 막기 위함.
+"""
 import uuid
 
 from backend.common.db import table
@@ -21,11 +26,12 @@ def get_meeting(meeting_id: str) -> dict | None:
     return resp.get("Item")
 
 
-def create_meeting(date: str, memo: str) -> dict:
+def create_meeting(date: str, memo: str, created_by: str) -> dict:
     item = {
         "meeting_id": uuid.uuid4().hex,
         "date": date,
         "memo": memo,
+        "created_by": created_by,
         "created_at": now_kst_iso(),
     }
     _table().put_item(Item=item)

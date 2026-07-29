@@ -17,8 +17,8 @@ def test_week_range_from_iso_monday_to_sunday():
 
 def test_meeting_rounds_orders_and_labels_sequentially():
     meetings = [
-        {"meeting_id": "m2", "date": "2026-08-03", "memo": "청해 특훈"},
-        {"meeting_id": "m1", "date": "2026-07-20", "memo": "문법 총정리"},
+        {"meeting_id": "m2", "date": "2026-08-03", "memo": "청해 특훈", "created_by": "u2"},
+        {"meeting_id": "m1", "date": "2026-07-20", "memo": "문법 총정리", "created_by": "u1"},
     ]
     rounds = meeting_rounds(meetings, season_start="2026-07-01")
     assert rounds == [
@@ -27,6 +27,7 @@ def test_meeting_rounds_orders_and_labels_sequentially():
             "meeting_id": "m1",
             "date": "2026-07-20",
             "memo": "문법 총정리",
+            "created_by": "u1",
             "from": "2026-07-01",
             "to": "2026-07-20",
         },
@@ -35,6 +36,7 @@ def test_meeting_rounds_orders_and_labels_sequentially():
             "meeting_id": "m2",
             "date": "2026-08-03",
             "memo": "청해 특훈",
+            "created_by": "u2",
             "from": "2026-07-21",
             "to": "2026-08-03",
         },
@@ -46,10 +48,18 @@ def test_meeting_rounds_empty_list():
 
 
 def test_meeting_rounds_single_meeting():
-    meetings = [{"meeting_id": "m1", "date": "2026-07-20", "memo": ""}]
+    meetings = [{"meeting_id": "m1", "date": "2026-07-20", "memo": "", "created_by": "u1"}]
     rounds = meeting_rounds(meetings, season_start="2026-07-01")
     assert rounds == [
-        {"round": 1, "meeting_id": "m1", "date": "2026-07-20", "memo": "", "from": "2026-07-01", "to": "2026-07-20"}
+        {
+            "round": 1,
+            "meeting_id": "m1",
+            "date": "2026-07-20",
+            "memo": "",
+            "created_by": "u1",
+            "from": "2026-07-01",
+            "to": "2026-07-20",
+        }
     ]
 
 

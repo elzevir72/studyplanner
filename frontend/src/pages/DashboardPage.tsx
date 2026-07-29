@@ -6,6 +6,7 @@ import {
   currentSeason,
   deleteMeeting,
   feed,
+  listMeetings,
   meetingRoundsDashboard,
   monthlyDashboard,
   seasonDashboard,
@@ -14,7 +15,11 @@ import {
 } from '../api/client'
 import { clearParticipantSession, getParticipantSession } from '../auth'
 import DdayBanner from '../components/DdayBanner'
-import type { DashboardResponse, FeedItem, MeetingRoundSummary, ParticipantSummary, Season } from '../types'
+import type { DashboardResponse, FeedItem, Meeting, MeetingRoundSummary, ParticipantSummary, Season } from '../types'
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10)
+}
 
 type ViewKind = 'weekly' | 'meetings' | 'monthly' | 'season'
 
@@ -73,11 +78,13 @@ function SummaryStrip({ participants }: { participants: ParticipantSummary[] }) 
 function EditMeetingForm({
   round,
   token,
+  isOwner,
   onSaved,
   onCancel,
 }: {
   round: MeetingRoundSummary
   token: string
+  isOwner: boolean
   onSaved: () => void
   onCancel: () => void
 }) {
@@ -124,9 +131,13 @@ function EditMeetingForm({
       <button type="button" className="secondary" onClick={onCancel} disabled={saving}>
         취소
       </button>
-      <button type="button" className="secondary" onClick={handleDelete} disabled={saving}>
-        이 모임 삭제
-      </button>
+      {isOwner ? (
+        <button type="button" className="secondary" onClick={handleDelete} disabled={saving}>
+          이 모임 삭제
+        </button>
+      ) : (
+        <p className="hint">삭제는 이 모임을 등록한 참가자만 할 수 있어요.</p>
+      )}
     </div>
   )
 }
@@ -185,6 +196,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false)
 
   const [rounds, setRounds] = useState<MeetingRoundSummary[]>([])
+  const [upcomingMeetings, setUpcomingMeetings] = useState<Meeting[]>([])
   const [openRound, setOpenRound] = useState<number | null>(null)
   const [editingRound, setEditingRound] = useState<number | null>(null)
 
@@ -193,9 +205,11 @@ export default function DashboardPage() {
   }, [])
 
   const loadMeetingRounds = async () => {
-    const res = await meetingRoundsDashboard()
-    setRounds(res)
-    setOpenRound(res.length > 0 ? res[res.length - 1].round : null)
+    const [rounds, allMeetings] = await Promise.all([meetingRoundsDashboard(), listMeetings()])
+    setRounds(rounds)
+    setOpenRound(rounds.length > 0 ? rounds[rounds.length - 1].round : null)
+    const today = todayStr()
+    setUpcomingMeetings(allMeetings.filter((m) => m.date > today).sort((a, b) => a.date.localeCompare(b.date)))
   }
 
   useEffect(() => {
@@ -297,6 +311,7 @@ export default function DashboardPage() {
                   <EditMeetingForm
                     round={r}
                     token={session.token}
+                    isOwner={r.created_by === session.user_id}
                     onSaved={() => {
                       setEditingRound(null)
                       loadMeetingRounds()
@@ -319,6 +334,18 @@ export default function DashboardPage() {
               </div>
             </details>
           ))}
+
+          {upcomingMeetings.length > 0 && (
+            <>
+              <div className="section-title-sm">예정된 모임</div>
+              {upcomingMeetings.map((m) => (
+                <div className="feed-item" key={m.meeting_id}>
+                  <div className="meta">{m.date}</div>
+                  {m.memo && <div>{m.memo}</div>}
+                </div>
+              ))}
+            </>
+          )}
 
           <div className="section-title-sm">새 모임 등록</div>
           <AddMeetingForm token={session.token} onCreated={loadMeetingRounds} />

@@ -67,12 +67,14 @@ export interface Meeting {
   meeting_id: string
   date: string
   memo: string
+  created_by: string
   created_at: string
 }
 
 export interface MeetingRoundSummary {
   round: number
   meeting_id: string
+  created_by: string
   range: { from: string; to: string }
   memo: string
   participants: ParticipantSummary[]

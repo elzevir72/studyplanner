@@ -51,13 +51,13 @@ def list_meetings(event, context):
 @handle_errors
 def create_meeting(event, context):
     """오프라인 모임 등록 — 참가자 누구나 가능(관리자 권한 불필요)."""
-    require_participant(event)
+    user_id = require_participant(event)
     body = parse_body(event)
     meeting_date = body.get("date")
     if not meeting_date:
         raise ValueError("date is required")
 
-    meeting = meetings_repo.create_meeting(meeting_date, body.get("memo", ""))
+    meeting = meetings_repo.create_meeting(meeting_date, body.get("memo", ""), created_by=user_id)
     return responses.created(meeting)
 
 
@@ -80,11 +80,14 @@ def update_meeting(event, context):
 
 @handle_errors
 def delete_meeting(event, context):
-    """오프라인 모임 삭제 — 참가자 누구나 가능(관리자 권한 불필요)."""
-    require_participant(event)
+    """오프라인 모임 삭제 — 등록자 본인만 가능(다른 참가자가 실수로/의도적으로 지우는 것을 방지)."""
+    user_id = require_participant(event)
     meeting_id = path_params(event)["meeting_id"]
-    if not meetings_repo.get_meeting(meeting_id):
+    meeting = meetings_repo.get_meeting(meeting_id)
+    if not meeting:
         return responses.not_found("meeting not found")
+    if meeting.get("created_by") != user_id:
+        return responses.forbidden("only the participant who registered this meeting can delete it")
 
     meetings_repo.delete_meeting(meeting_id)
     return responses.no_content()
@@ -92,13 +95,19 @@ def delete_meeting(event, context):
 
 @handle_errors
 def meeting_rounds_dashboard(event, context):
-    """오프라인 모임 회차별 요약 목록. 각 회차의 구간(from~to) 기준으로 참가자별 집계를 낸다."""
+    """
+    오프라인 모임 회차별 요약 목록. 각 회차의 구간(from~to) 기준으로 참가자별 집계를 낸다.
+    아직 지나지 않은(오늘 이후) 모임은 회차 집계에서 제외한다 — 아직 열리지도 않은 모임을
+    이미 끝난 회차처럼 보여주지 않기 위함. 그런 모임은 /meetings 목록에서 "예정된 모임"으로
+    별도 확인 가능(날짜/메모만, 집계 없음).
+    """
     current_season = seasons_repo.get_current_season()
     if not current_season:
         raise ValueError("no active season configured")
 
-    meetings = meetings_repo.list_meetings()
-    rounds = meeting_rounds(meetings, season_start=current_season["start_date"])
+    today = now_kst().date().isoformat()
+    past_meetings = [m for m in meetings_repo.list_meetings() if m["date"] <= today]
+    rounds = meeting_rounds(past_meetings, season_start=current_season["start_date"])
 
     result = []
     for r in rounds:
@@ -107,6 +116,7 @@ def meeting_rounds_dashboard(event, context):
         dashboard = _dashboard_response("round", r["round"], start, end)
         dashboard["meeting_id"] = r["meeting_id"]
         dashboard["memo"] = r["memo"]
+        dashboard["created_by"] = r["created_by"]
         result.append(dashboard)
 
     return responses.ok(result)
