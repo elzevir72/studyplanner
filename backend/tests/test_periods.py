@@ -16,10 +16,28 @@ def test_week_range_from_iso_monday_to_sunday():
 
 
 def test_meeting_rounds_orders_and_labels_sequentially():
-    rounds = meeting_rounds(["2026-08-03", "2026-07-20"], season_start="2026-07-01")
+    meetings = [
+        {"meeting_id": "m2", "date": "2026-08-03", "memo": "청해 특훈"},
+        {"meeting_id": "m1", "date": "2026-07-20", "memo": "문법 총정리"},
+    ]
+    rounds = meeting_rounds(meetings, season_start="2026-07-01")
     assert rounds == [
-        {"round": 1, "date": "2026-07-20", "from": "2026-07-01", "to": "2026-07-20"},
-        {"round": 2, "date": "2026-08-03", "from": "2026-07-21", "to": "2026-08-03"},
+        {
+            "round": 1,
+            "meeting_id": "m1",
+            "date": "2026-07-20",
+            "memo": "문법 총정리",
+            "from": "2026-07-01",
+            "to": "2026-07-20",
+        },
+        {
+            "round": 2,
+            "meeting_id": "m2",
+            "date": "2026-08-03",
+            "memo": "청해 특훈",
+            "from": "2026-07-21",
+            "to": "2026-08-03",
+        },
     ]
 
 
@@ -28,8 +46,11 @@ def test_meeting_rounds_empty_list():
 
 
 def test_meeting_rounds_single_meeting():
-    rounds = meeting_rounds(["2026-07-20"], season_start="2026-07-01")
-    assert rounds == [{"round": 1, "date": "2026-07-20", "from": "2026-07-01", "to": "2026-07-20"}]
+    meetings = [{"meeting_id": "m1", "date": "2026-07-20", "memo": ""}]
+    rounds = meeting_rounds(meetings, season_start="2026-07-01")
+    assert rounds == [
+        {"round": 1, "meeting_id": "m1", "date": "2026-07-20", "memo": "", "from": "2026-07-01", "to": "2026-07-20"}
+    ]
 
 
 def test_month_range_from_str():

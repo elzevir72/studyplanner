@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+  ApiError,
+  createMeeting,
   currentSeason,
+  deleteMeeting,
   feed,
   meetingRoundsDashboard,
   monthlyDashboard,
   seasonDashboard,
+  updateMeeting,
   weeklyDashboard,
 } from '../api/client'
 import { clearParticipantSession, getParticipantSession } from '../auth'
@@ -66,6 +70,108 @@ function SummaryStrip({ participants }: { participants: ParticipantSummary[] }) 
   )
 }
 
+function EditMeetingForm({
+  round,
+  token,
+  onSaved,
+  onCancel,
+}: {
+  round: MeetingRoundSummary
+  token: string
+  onSaved: () => void
+  onCancel: () => void
+}) {
+  const [date, setDate] = useState(round.range.to)
+  const [memo, setMemo] = useState(round.memo)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    setError(null)
+    setSaving(true)
+    try {
+      await updateMeeting(round.meeting_id, date, memo, token)
+      onSaved()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '수정에 실패했습니다.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirm('이 모임을 삭제할까요?')) return
+    setSaving(true)
+    try {
+      await deleteMeeting(round.meeting_id, token)
+      onSaved()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '삭제에 실패했습니다.')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="study-item-block">
+      <label>모임 날짜</label>
+      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      <label>한 줄 메모</label>
+      <input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="예: N2 문법 총정리" />
+      {error && <p className="error">{error}</p>}
+      <button type="button" onClick={handleSave} disabled={saving}>
+        저장
+      </button>
+      <button type="button" className="secondary" onClick={onCancel} disabled={saving}>
+        취소
+      </button>
+      <button type="button" className="secondary" onClick={handleDelete} disabled={saving}>
+        이 모임 삭제
+      </button>
+    </div>
+  )
+}
+
+function AddMeetingForm({ token, onCreated }: { token: string; onCreated: () => void }) {
+  const [date, setDate] = useState('')
+  const [memo, setMemo] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setSaving(true)
+    try {
+      await createMeeting(date, memo, token)
+      setDate('')
+      setMemo('')
+      onCreated()
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '등록에 실패했습니다.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="study-item-block">
+      <label htmlFor="new-meeting-date">모임 날짜</label>
+      <input id="new-meeting-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+      <label htmlFor="new-meeting-memo">한 줄 메모 (선택)</label>
+      <input
+        id="new-meeting-memo"
+        value={memo}
+        onChange={(e) => setMemo(e.target.value)}
+        placeholder="예: N2 문법 총정리"
+      />
+      {error && <p className="error">{error}</p>}
+      <button type="submit" disabled={saving}>
+        모임 등록
+      </button>
+    </form>
+  )
+}
+
 export default function DashboardPage() {
   const navigate = useNavigate()
   const session = getParticipantSession()!
@@ -80,18 +186,23 @@ export default function DashboardPage() {
 
   const [rounds, setRounds] = useState<MeetingRoundSummary[]>([])
   const [openRound, setOpenRound] = useState<number | null>(null)
+  const [editingRound, setEditingRound] = useState<number | null>(null)
 
   useEffect(() => {
     currentSeason().then(setSeason).catch(() => setSeason(null))
   }, [])
 
+  const loadMeetingRounds = async () => {
+    const res = await meetingRoundsDashboard()
+    setRounds(res)
+    setOpenRound(res.length > 0 ? res[res.length - 1].round : null)
+  }
+
   useEffect(() => {
     setLoading(true)
     const load = async () => {
       if (view === 'meetings') {
-        const res = await meetingRoundsDashboard()
-        setRounds(res)
-        setOpenRound(res.length > 0 ? res[res.length - 1].round : null)
+        await loadMeetingRounds()
         return
       }
 
@@ -168,10 +279,9 @@ export default function DashboardPage() {
       {loading ? (
         <p className="hint">불러오는 중...</p>
       ) : view === 'meetings' ? (
-        rounds.length === 0 ? (
-          <p className="hint">아직 등록된 오프라인 모임이 없어요.</p>
-        ) : (
-          rounds.map((r) => (
+        <>
+          {rounds.length === 0 && <p className="hint">아직 등록된 오프라인 모임이 없어요.</p>}
+          {rounds.map((r) => (
             <details
               className="accordion"
               key={r.round}
@@ -183,16 +293,36 @@ export default function DashboardPage() {
                 {r.memo ? ` · ${r.memo}` : ''}
               </summary>
               <div className="acc-body">
-                <p className="hint">
-                  {r.range.from} ~ {r.range.to}
-                </p>
-                <SummaryStrip participants={r.participants} />
-                <div className="section-title-sm">참가자별 달성률</div>
-                <ParticipantList participants={r.participants} notParticipated={r.not_participated} />
+                {editingRound === r.round ? (
+                  <EditMeetingForm
+                    round={r}
+                    token={session.token}
+                    onSaved={() => {
+                      setEditingRound(null)
+                      loadMeetingRounds()
+                    }}
+                    onCancel={() => setEditingRound(null)}
+                  />
+                ) : (
+                  <>
+                    <p className="hint">
+                      {r.range.from} ~ {r.range.to}
+                    </p>
+                    <button type="button" className="secondary" onClick={() => setEditingRound(r.round)}>
+                      이 모임 수정 / 삭제
+                    </button>
+                    <SummaryStrip participants={r.participants} />
+                    <div className="section-title-sm">참가자별 달성률</div>
+                    <ParticipantList participants={r.participants} notParticipated={r.not_participated} />
+                  </>
+                )}
               </div>
             </details>
-          ))
-        )
+          ))}
+
+          <div className="section-title-sm">새 모임 등록</div>
+          <AddMeetingForm token={session.token} onCreated={loadMeetingRounds} />
+        </>
       ) : (
         <>
           {range && (

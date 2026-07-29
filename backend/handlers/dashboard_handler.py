@@ -1,8 +1,9 @@
 from datetime import date
 
 from backend.common import responses
+from backend.common.auth import require_participant
 from backend.common.errors import handle_errors
-from backend.common.request import query_params
+from backend.common.request import parse_body, path_params, query_params
 from backend.common.time_utils import now_kst
 from backend.domain.dashboard import build_dashboard, not_participated
 from backend.domain.periods import (
@@ -41,10 +42,52 @@ def weekly(event, context):
 
 @handle_errors
 def list_meetings(event, context):
-    """등록된 오프라인 모임 목록 (관리자 페이지에서 이미 등록된 모임을 보여줄 때 사용)."""
+    """등록된 오프라인 모임 목록."""
     meetings = meetings_repo.list_meetings()
     meetings.sort(key=lambda m: m["date"])
     return responses.ok(meetings)
+
+
+@handle_errors
+def create_meeting(event, context):
+    """오프라인 모임 등록 — 참가자 누구나 가능(관리자 권한 불필요)."""
+    require_participant(event)
+    body = parse_body(event)
+    meeting_date = body.get("date")
+    if not meeting_date:
+        raise ValueError("date is required")
+
+    meeting = meetings_repo.create_meeting(meeting_date, body.get("memo", ""))
+    return responses.created(meeting)
+
+
+@handle_errors
+def update_meeting(event, context):
+    """오프라인 모임 수정 — 참가자 누구나 가능(관리자 권한 불필요)."""
+    require_participant(event)
+    meeting_id = path_params(event)["meeting_id"]
+    if not meetings_repo.get_meeting(meeting_id):
+        return responses.not_found("meeting not found")
+
+    body = parse_body(event)
+    meeting_date = body.get("date")
+    if not meeting_date:
+        raise ValueError("date is required")
+
+    meeting = meetings_repo.update_meeting(meeting_id, meeting_date, body.get("memo", ""))
+    return responses.ok(meeting)
+
+
+@handle_errors
+def delete_meeting(event, context):
+    """오프라인 모임 삭제 — 참가자 누구나 가능(관리자 권한 불필요)."""
+    require_participant(event)
+    meeting_id = path_params(event)["meeting_id"]
+    if not meetings_repo.get_meeting(meeting_id):
+        return responses.not_found("meeting not found")
+
+    meetings_repo.delete_meeting(meeting_id)
+    return responses.no_content()
 
 
 @handle_errors
@@ -55,15 +98,15 @@ def meeting_rounds_dashboard(event, context):
         raise ValueError("no active season configured")
 
     meetings = meetings_repo.list_meetings()
-    rounds = meeting_rounds([m["date"] for m in meetings], season_start=current_season["start_date"])
-    memo_by_date = {m["date"]: m.get("memo", "") for m in meetings}
+    rounds = meeting_rounds(meetings, season_start=current_season["start_date"])
 
     result = []
     for r in rounds:
         start = date.fromisoformat(r["from"])
         end = date.fromisoformat(r["to"])
         dashboard = _dashboard_response("round", r["round"], start, end)
-        dashboard["memo"] = memo_by_date.get(r["date"], "")
+        dashboard["meeting_id"] = r["meeting_id"]
+        dashboard["memo"] = r["memo"]
         result.append(dashboard)
 
     return responses.ok(result)

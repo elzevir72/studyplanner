@@ -96,6 +96,15 @@ export const weeklyDashboard = (week?: string) =>
 
 export const listMeetings = () => request<Meeting[]>('/api/meetings')
 
+export const createMeeting = (date: string, memo: string, token: string) =>
+  request<Meeting>('/api/meetings', { method: 'POST', body: JSON.stringify({ date, memo }) }, token)
+
+export const updateMeeting = (meeting_id: string, date: string, memo: string, token: string) =>
+  request<Meeting>(`/api/meetings/${meeting_id}`, { method: 'PUT', body: JSON.stringify({ date, memo }) }, token)
+
+export const deleteMeeting = (meeting_id: string, token: string) =>
+  request<void>(`/api/meetings/${meeting_id}`, { method: 'DELETE' }, token)
+
 export const meetingRoundsDashboard = () => request<MeetingRoundSummary[]>('/api/dashboard/meetings')
 
 export const monthlyDashboard = (month?: string) =>
@@ -127,6 +136,3 @@ export const adminCreateSeason = (input: CreateSeasonInput, token: string) =>
 
 export const adminActivateSeason = (season_id: string, token: string) =>
   request(`/api/admin/seasons/${season_id}/activate`, { method: 'PATCH' }, token)
-
-export const adminCreateMeeting = (date: string, memo: string, token: string) =>
-  request<Meeting>('/api/admin/meetings', { method: 'POST', body: JSON.stringify({ date, memo }) }, token)

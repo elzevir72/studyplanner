@@ -22,7 +22,6 @@ Base path: `/api` (API Gateway → Lambda, Python). 인증이 필요한 엔드�
 | PATCH | `/admin/users/{user_id}` | 참가자 `status` 변경 (`active`/`inactive`) | 필요 (관리자) |
 | POST | `/admin/seasons` | 신규 시즌 생성 `{season_id, name, start_date, end_date, exam_date, target_level}` | 필요 (관리자) |
 | PATCH | `/admin/seasons/{season_id}/activate` | 해당 시즌을 `is_current=true`로 전환. 기존에 `is_current=true`였던 시즌은 자동으로 `false`로 전환됨 (원자적 처리 필요) | 필요 (관리자) |
-| POST | `/admin/meetings` | 오프라인 모임 등록 `{date, memo}` | 필요 (관리자) |
 
 - 관리자 토큰은 참가자 토큰과 스코프가 분리되어, 참가자 전용 엔드포인트(`/entries/*` 등)에는 사용할 수 없고 그 반대도 마찬가지.
 - 관리자가 참가자 계정 생성 시 초기 PIN을 함께 지정하고, 계정/PIN 정보를 참가자에게 직접(예: 메신저) 전달하는 것을 전제로 한다 — 별도 초대 이메일/링크 시스템은 만들지 않음.
@@ -60,21 +59,26 @@ Base path: `/api` (API Gateway → Lambda, Python). 인증이 필요한 엔드�
 - `PUT /entries/{user_id}/{date}` 요청 바디: `{study_items: [{method, topics, amount}, ...], notes}`. 하루에 여러 학습 수단을 각각 다른 내용/학습량으로 기록할 수 있다 (예: 인강으로 문법·청해 30분, 문제집으로 어휘 5페이지). 달성률(%)은 클라이언트가 보내지 않으며, 서버가 저장 시점의 `daily_goal`을 `goal_snapshot`으로 복사해 함께 저장한다.
 
 ## 오프라인 모임
-관리자가 실제 모임이 열린 날짜를 등록하면(위 "관리자" 섹션의 `POST /admin/meetings`), 그 날짜들을 기준으로 회차가 자동으로 매겨진다. 격주처럼 고정 간격을 가정하지 않는다 — 모임이 매번 정확히 2주 간격이 아닐 수 있어서, 실제 등록된 날짜를 그대로 anchor로 쓴다.
+실제 모임이 열린 날짜를 등록하면 그 날짜들을 기준으로 회차가 자동으로 매겨진다. 격주처럼 고정 간격을 가정하지 않는다 — 모임이 매번 정확히 2주 간격이 아닐 수 있어서, 실제 등록된 날짜를 그대로 anchor로 쓴다. **등록/수정/삭제는 관리자 전용이 아니라 참가자 누구나 가능** — 시즌/계정 관리와 달리 모임 일정 조율은 그룹 구성원 전체가 실시간으로 정정할 수 있어야 더 실용적이라고 판단.
 
 | Method | Path | 설명 | 인증 |
 |---|---|---|---|
 | GET | `/meetings` | 등록된 모임 목록 (날짜순) | 불필요 |
+| POST | `/meetings` | 모임 등록 `{date, memo}` | 필요 (참가자, 본인 확인 없이 누구나) |
+| PUT | `/meetings/{meeting_id}` | 모임 수정 `{date, memo}` | 필요 (참가자, 누구나) |
+| DELETE | `/meetings/{meeting_id}` | 모임 삭제 | 필요 (참가자, 누구나) |
 | GET | `/dashboard/meetings` | 회차별 요약 목록 (회차마다 참가자별 집계 + 그 모임의 메모) | 불필요 |
 
 - 회차 구간: 1회차는 "현재 시즌 시작일 ~ 1회차 모임 날짜", 이후 회차는 "직전 회차 모임 다음날 ~ 이번 회차 모임 날짜".
 - 모임을 아직 하나도 등록하지 않았으면 `/dashboard/meetings`는 빈 배열을 반환한다.
+- 모임 등록/수정/삭제는 `require_participant`만 검사한다(`require_participant_self`가 아님) — 토큰의 `user_id`와 무관하게 로그인한 참가자 누구나 그룹의 모임 일정을 관리할 수 있다.
 
 ### `/dashboard/meetings` 응답 예시
 ```json
 [
   {
     "round": 1,
+    "meeting_id": "a1b2c3d4e5f6",
     "range": {"from": "2026-07-01", "to": "2026-07-20"},
     "memo": "N2 문법 총정리",
     "participants": [

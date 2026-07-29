@@ -2,9 +2,9 @@
 주간/월간/오프라인 모임 회차 집계 기간 계산 — 순수 함수.
 
 - 주간: ISO 8601 기준(월요일 시작).
-- 오프라인 모임 회차: 관리자가 등록한 모임 날짜들을 정렬해 회차를 나눔. 각 회차 구간은
-  "직전 모임 다음날 ~ 이번 모임 날짜"(첫 회차는 시즌 시작일부터). 실제 모임 주기가
-  불규칙할 수 있어 고정 간격(2주) 계산 대신 관리자가 등록한 날짜를 그대로 anchor로 쓴다.
+- 오프라인 모임 회차: 참가자가 등록한(관리자 권한 불필요) 모임 날짜들을 정렬해 회차를 나눔.
+  각 회차 구간은 "직전 모임 다음날 ~ 이번 모임 날짜"(첫 회차는 시즌 시작일부터). 실제 모임
+  주기가 불규칙할 수 있어 고정 간격(2주) 계산 대신 등록된 날짜를 그대로 anchor로 쓴다.
 - 월간: 달력월(1일~말일).
 """
 import calendar
@@ -28,29 +28,32 @@ def week_range_containing(reference_date: date) -> tuple[date, date]:
     return start, end
 
 
-def meeting_rounds(meeting_dates: list[str], season_start: str) -> list[dict]:
+def meeting_rounds(meetings: list[dict], season_start: str) -> list[dict]:
     """
-    meeting_dates: 오프라인 모임 날짜 문자열 목록(YYYY-MM-DD, 순서 무관).
+    meetings: [{"meeting_id": str, "date": "YYYY-MM-DD", "memo": str}, ...] (순서 무관).
     season_start: 현재 시즌 시작일 — 1회차의 구간 시작점.
 
     날짜순 정렬 후 회차를 매기고, 각 회차의 집계 구간(from~to)을 계산한다.
     구간은 "직전 회차 다음날 ~ 이번 회차 날짜"(1회차는 시즌 시작일부터 해당 모임 날짜까지).
-    반환: [{"round": 1, "date": "2026-07-20", "from": "2026-07-01", "to": "2026-07-20"}, ...]
+    반환: [{"round": 1, "meeting_id": "...", "date": "2026-07-20", "memo": "...",
+            "from": "2026-07-01", "to": "2026-07-20"}, ...]
     """
-    sorted_dates = sorted(meeting_dates)
+    sorted_meetings = sorted(meetings, key=lambda m: m["date"])
     start_boundary = date.fromisoformat(season_start)
 
     rounds = []
-    for i, meeting_date_str in enumerate(sorted_dates, start=1):
+    for i, meeting in enumerate(sorted_meetings, start=1):
         rounds.append(
             {
                 "round": i,
-                "date": meeting_date_str,
+                "meeting_id": meeting["meeting_id"],
+                "date": meeting["date"],
+                "memo": meeting.get("memo", ""),
                 "from": start_boundary.isoformat(),
-                "to": meeting_date_str,
+                "to": meeting["date"],
             }
         )
-        start_boundary = date.fromisoformat(meeting_date_str) + timedelta(days=1)
+        start_boundary = date.fromisoformat(meeting["date"]) + timedelta(days=1)
     return rounds
 
 

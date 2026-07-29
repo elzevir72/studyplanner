@@ -116,6 +116,18 @@ functions:
     handler: backend/handlers/dashboard_handler.list_meetings
     events:
       - httpApi: { path: '/api/meetings', method: get }
+  createMeeting:
+    handler: backend/handlers/dashboard_handler.create_meeting
+    events:
+      - httpApi: { path: '/api/meetings', method: post }
+  updateMeeting:
+    handler: backend/handlers/dashboard_handler.update_meeting
+    events:
+      - httpApi: { path: '/api/meetings/{meeting_id}', method: put }
+  deleteMeeting:
+    handler: backend/handlers/dashboard_handler.delete_meeting
+    events:
+      - httpApi: { path: '/api/meetings/{meeting_id}', method: delete }
   meetingRoundsDashboard:
     handler: backend/handlers/dashboard_handler.meeting_rounds_dashboard
     events:
@@ -150,10 +162,6 @@ functions:
     handler: backend/handlers/admin_handler.activate_season
     events:
       - httpApi: { path: '/api/admin/seasons/{season_id}/activate', method: patch }
-  adminCreateMeeting:
-    handler: backend/handlers/admin_handler.create_meeting
-    events:
-      - httpApi: { path: '/api/admin/meetings', method: post }
 
 resources:
   Resources:

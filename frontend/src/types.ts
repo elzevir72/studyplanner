@@ -72,6 +72,7 @@ export interface Meeting {
 
 export interface MeetingRoundSummary {
   round: number
+  meeting_id: string
   range: { from: string; to: string }
   memo: string
   participants: ParticipantSummary[]
