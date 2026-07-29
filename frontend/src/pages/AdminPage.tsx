@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react'
 import {
   ApiError,
   adminActivateSeason,
+  adminCreateMeeting,
   adminCreateSeason,
   adminCreateUser,
   adminUpdateUserStatus,
   adminVerify,
+  listMeetings,
   listSeasons,
 } from '../api/client'
 import { clearAdminSession, getAdminSession, setAdminSession } from '../auth'
-import type { Season } from '../types'
+import type { Meeting, Season } from '../types'
 
 function LoginForm({ onLoggedIn }: { onLoggedIn: () => void }) {
   const [password, setPassword] = useState('')
@@ -231,14 +233,71 @@ function ActivateSeasonForm({ token, seasons, onActivated }: { token: string; se
   )
 }
 
+function CreateMeetingForm({ token, meetings, onCreated }: { token: string; meetings: Meeting[]; onCreated: () => void }) {
+  const [date, setDate] = useState('')
+  const [memo, setMemo] = useState('')
+  const [message, setMessage] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setMessage(null)
+    try {
+      await adminCreateMeeting(date, memo, token)
+      setMessage('모임이 등록되었습니다.')
+      setDate('')
+      setMemo('')
+      onCreated()
+    } catch (err) {
+      setMessage(err instanceof ApiError ? err.message : '모임 등록에 실패했습니다.')
+    }
+  }
+
+  const sorted = [...meetings].sort((a, b) => b.date.localeCompare(a.date))
+
+  return (
+    <div className="card">
+      <h2>오프라인 모임 등록</h2>
+      <form onSubmit={handleSubmit}>
+        <label htmlFor="meeting-date">모임 날짜</label>
+        <input id="meeting-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+        <label htmlFor="meeting-memo">한 줄 메모 (선택)</label>
+        <input
+          id="meeting-memo"
+          value={memo}
+          onChange={(e) => setMemo(e.target.value)}
+          placeholder="예: N2 문법 총정리"
+        />
+        {message && <p className="hint">{message}</p>}
+        <button type="submit">모임 등록</button>
+      </form>
+      {sorted.length > 0 && (
+        <>
+          <div className="section-title-sm">등록된 모임</div>
+          {sorted.map((m) => (
+            <div className="feed-item" key={m.meeting_id}>
+              <div className="meta">{m.date}</div>
+              {m.memo && <div>{m.memo}</div>}
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const [session, setSession] = useState(getAdminSession())
   const [seasons, setSeasons] = useState<Season[]>([])
+  const [meetings, setMeetings] = useState<Meeting[]>([])
 
   const loadSeasons = () => listSeasons().then(setSeasons).catch(() => setSeasons([]))
+  const loadMeetings = () => listMeetings().then(setMeetings).catch(() => setMeetings([]))
 
   useEffect(() => {
-    if (session) loadSeasons()
+    if (session) {
+      loadSeasons()
+      loadMeetings()
+    }
   }, [session])
 
   if (!session) {
@@ -264,6 +323,7 @@ export default function AdminPage() {
       <UpdateUserStatusForm token={session.token} />
       <CreateSeasonForm token={session.token} onCreated={loadSeasons} />
       <ActivateSeasonForm token={session.token} seasons={seasons} onActivated={loadSeasons} />
+      <CreateMeetingForm token={session.token} meetings={meetings} onCreated={loadMeetings} />
     </div>
   )
 }

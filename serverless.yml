@@ -16,6 +16,7 @@ provider:
     SEASONS_TABLE: ${self:service}-${self:provider.stage}-seasons
     ENTRIES_TABLE: ${self:service}-${self:provider.stage}-entries
     CONFIG_TABLE: ${self:service}-${self:provider.stage}-config
+    MEETINGS_TABLE: ${self:service}-${self:provider.stage}-meetings
     JWT_SECRET: ${env:JWT_SECRET}
   httpApi:
     cors: true
@@ -38,6 +39,7 @@ provider:
             - !GetAtt EntriesTable.Arn
             - !Sub '${EntriesTable.Arn}/index/*'
             - !GetAtt ConfigTable.Arn
+            - !GetAtt MeetingsTable.Arn
 
 package:
   patterns:
@@ -110,10 +112,14 @@ functions:
     handler: backend/handlers/dashboard_handler.weekly
     events:
       - httpApi: { path: '/api/dashboard/weekly', method: get }
-  biweeklyDashboard:
-    handler: backend/handlers/dashboard_handler.biweekly
+  listMeetings:
+    handler: backend/handlers/dashboard_handler.list_meetings
     events:
-      - httpApi: { path: '/api/dashboard/biweekly', method: get }
+      - httpApi: { path: '/api/meetings', method: get }
+  meetingRoundsDashboard:
+    handler: backend/handlers/dashboard_handler.meeting_rounds_dashboard
+    events:
+      - httpApi: { path: '/api/dashboard/meetings', method: get }
   monthlyDashboard:
     handler: backend/handlers/dashboard_handler.monthly
     events:
@@ -144,6 +150,10 @@ functions:
     handler: backend/handlers/admin_handler.activate_season
     events:
       - httpApi: { path: '/api/admin/seasons/{season_id}/activate', method: patch }
+  adminCreateMeeting:
+    handler: backend/handlers/admin_handler.create_meeting
+    events:
+      - httpApi: { path: '/api/admin/meetings', method: post }
 
 resources:
   Resources:
@@ -221,6 +231,18 @@ resources:
             AttributeType: S
         KeySchema:
           - AttributeName: config_id
+            KeyType: HASH
+
+    MeetingsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.MEETINGS_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: meeting_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: meeting_id
             KeyType: HASH
 
     # ---------- Frontend hosting: S3 + CloudFront (OAC) ----------

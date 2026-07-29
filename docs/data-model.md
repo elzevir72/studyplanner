@@ -69,13 +69,24 @@ day-by-day 학습 이력 본체.
 | `config_id` (PK) | string | 고정값 `"GROUP"` |
 | `week_start_day` | string | 고정값 `"MON"` (ISO 8601) |
 
-격주 집계 기준일은 더 이상 `Config`에 고정하지 않고 **현재 시즌(`Seasons.is_current=true`)의 `start_date`**를 anchor로 사용한다 — 시즌이 바뀌면 격주 주기도 새 시즌 시작일 기준으로 자연스럽게 재설정됨. **실제 격주 오프라인 모임 주기와 일치** — 대시보드의 기본/우선 뷰로 취급.
+## 테이블: `Meetings`
+실제로 열린 오프라인 모임 날짜. 관리자가 모임이 끝난 뒤(또는 예정일을) 직접 등록한다 — 격주처럼 고정 간격을 가정하지 않고, 실제 모임이 열린 날짜를 그대로 회차 anchor로 쓴다(모임이 매번 정확히 2주 간격이 아닐 수 있어서).
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `meeting_id` (PK) | string | UUID |
+| `date` | string (`YYYY-MM-DD`) | 모임이 열린(열릴) 날짜 |
+| `memo` | string | 그 모임에서 다룬 내용에 대한 한 줄 메모/주제 (예: "N2 문법 총정리") |
+| `created_at` | string (ISO8601) | |
+
+회차 번호는 저장하지 않고, 등록된 모임들을 날짜순 정렬해 **읽기 시점에 계산**한다(순수 함수, `backend/domain/periods.py`의 `meeting_rounds`). 각 회차의 집계 구간은 "직전 회차 모임 다음날 ~ 이번 회차 모임 날짜"(1회차는 현재 시즌 `start_date`부터).
 
 ## 주요 접근 패턴
 | 요청 | 방법 |
 |---|---|
 | 특정 유저의 특정 기간 기록 조회 | `Entries` 테이블 Query (PK=user_id, SK BETWEEN from/to) |
 | 특정 주/월 전체 유저 기록 조회 (대시보드) | `ByDate` GSI Query (PK="ENTRY", SK BETWEEN from/to) 후 user_id별 group-by, **`status="active"`인 유저만 포함** |
+| 오프라인 모임 회차별 조회 | `Meetings` 전체 스캔 → 날짜순 정렬해 회차/구간 계산 → 각 구간을 `ByDate` GSI로 조회해 참가자별 집계 |
 | 미수행자 판정 | 위 결과에서 해당 기간 내 기록이 0건인 `user_id` 추출 (`status="active"`인 Users만 대상으로 diff) |
 | 공유 피드 (notes 목록) | `ByDate` GSI Query 결과에서 `notes` 비어있지 않은 항목만 최신순 정렬 |
 | 개인 달성률 조회 | 기간 내 각 `Entries` 항목의 `amount`/`goal_snapshot`으로 달성률 계산 후 추이 표시 (그룹 합산 아님) |

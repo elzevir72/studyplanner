@@ -62,3 +62,18 @@ export interface FeedItem {
   date: string
   notes: string
 }
+
+export interface Meeting {
+  meeting_id: string
+  date: string
+  memo: string
+  created_at: string
+}
+
+export interface MeetingRoundSummary {
+  round: number
+  range: { from: string; to: string }
+  memo: string
+  participants: ParticipantSummary[]
+  not_participated: string[]
+}

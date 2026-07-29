@@ -1,4 +1,14 @@
-import type { DashboardResponse, Entry, FeedItem, MethodGoal, Season, StudyItem, UserSummary } from '../types'
+import type {
+  DashboardResponse,
+  Entry,
+  FeedItem,
+  Meeting,
+  MeetingRoundSummary,
+  MethodGoal,
+  Season,
+  StudyItem,
+  UserSummary,
+} from '../types'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
@@ -84,8 +94,9 @@ export const seasonDashboard = (season_id: string) =>
 export const weeklyDashboard = (week?: string) =>
   request<DashboardResponse>(`/api/dashboard/weekly${week ? `?week=${week}` : ''}`)
 
-export const biweeklyDashboard = (start?: string) =>
-  request<DashboardResponse>(`/api/dashboard/biweekly${start ? `?start=${start}` : ''}`)
+export const listMeetings = () => request<Meeting[]>('/api/meetings')
+
+export const meetingRoundsDashboard = () => request<MeetingRoundSummary[]>('/api/dashboard/meetings')
 
 export const monthlyDashboard = (month?: string) =>
   request<DashboardResponse>(`/api/dashboard/monthly${month ? `?month=${month}` : ''}`)
@@ -116,3 +127,6 @@ export const adminCreateSeason = (input: CreateSeasonInput, token: string) =>
 
 export const adminActivateSeason = (season_id: string, token: string) =>
   request(`/api/admin/seasons/${season_id}/activate`, { method: 'PATCH' }, token)
+
+export const adminCreateMeeting = (date: string, memo: string, token: string) =>
+  request<Meeting>('/api/admin/meetings', { method: 'POST', body: JSON.stringify({ date, memo }) }, token)

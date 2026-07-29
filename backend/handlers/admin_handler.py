@@ -2,7 +2,7 @@ from backend.common import responses
 from backend.common.auth import hash_secret, issue_admin_token, require_admin, verify_secret
 from backend.common.errors import handle_errors
 from backend.common.request import parse_body, path_params
-from backend.repos import admin_repo, seasons_repo, users_repo
+from backend.repos import admin_repo, meetings_repo, seasons_repo, users_repo
 
 VALID_STATUSES = {"active", "inactive"}
 
@@ -80,3 +80,15 @@ def activate_season(event, context):
 
     seasons_repo.activate_season(season_id)
     return responses.ok({"season_id": season_id, "is_current": True})
+
+
+@handle_errors
+def create_meeting(event, context):
+    require_admin(event)
+    body = parse_body(event)
+    meeting_date = body.get("date")
+    if not meeting_date:
+        raise ValueError("date is required")
+
+    meeting = meetings_repo.create_meeting(meeting_date, body.get("memo", ""))
+    return responses.created(meeting)

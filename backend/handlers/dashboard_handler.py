@@ -6,14 +6,13 @@ from backend.common.request import query_params
 from backend.common.time_utils import now_kst
 from backend.domain.dashboard import build_dashboard, not_participated
 from backend.domain.periods import (
-    biweekly_range,
-    biweekly_range_from_start,
+    meeting_rounds,
     month_range_containing,
     month_range_from_str,
     week_range_containing,
     week_range_from_iso,
 )
-from backend.repos import entries_repo, seasons_repo, users_repo
+from backend.repos import entries_repo, meetings_repo, seasons_repo, users_repo
 
 
 def _dashboard_response(label_key: str, label_value: str, start: date, end: date) -> dict:
@@ -41,18 +40,33 @@ def weekly(event, context):
 
 
 @handle_errors
-def biweekly(event, context):
-    q = query_params(event)
-    start_param = q.get("start")
-    if start_param:
-        start, end = biweekly_range_from_start(start_param)
-    else:
-        current_season = seasons_repo.get_current_season()
-        if not current_season:
-            raise ValueError("no active season configured; pass ?start= explicitly")
-        anchor = date.fromisoformat(current_season["start_date"])
-        start, end = biweekly_range(anchor, now_kst().date())
-    return responses.ok(_dashboard_response("start", start.isoformat(), start, end))
+def list_meetings(event, context):
+    """등록된 오프라인 모임 목록 (관리자 페이지에서 이미 등록된 모임을 보여줄 때 사용)."""
+    meetings = meetings_repo.list_meetings()
+    meetings.sort(key=lambda m: m["date"])
+    return responses.ok(meetings)
+
+
+@handle_errors
+def meeting_rounds_dashboard(event, context):
+    """오프라인 모임 회차별 요약 목록. 각 회차의 구간(from~to) 기준으로 참가자별 집계를 낸다."""
+    current_season = seasons_repo.get_current_season()
+    if not current_season:
+        raise ValueError("no active season configured")
+
+    meetings = meetings_repo.list_meetings()
+    rounds = meeting_rounds([m["date"] for m in meetings], season_start=current_season["start_date"])
+    memo_by_date = {m["date"]: m.get("memo", "") for m in meetings}
+
+    result = []
+    for r in rounds:
+        start = date.fromisoformat(r["from"])
+        end = date.fromisoformat(r["to"])
+        dashboard = _dashboard_response("round", r["round"], start, end)
+        dashboard["memo"] = memo_by_date.get(r["date"], "")
+        result.append(dashboard)
+
+    return responses.ok(result)
 
 
 @handle_errors

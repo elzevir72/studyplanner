@@ -17,9 +17,10 @@ Python으로 작성되는 Lambda 핸들러. API 계약은 [../docs/api.md](../do
 - D-day(`exam_date` - 오늘, KST 기준)도 순수 함수로 계산한다.
 - `/admin/*` 엔드포인트는 참가자 토큰과 분리된 별도 인증 미들웨어로 검증한다 — 참가자 토큰으로 관리자 엔드포인트 호출이 불가능해야 하고 그 반대도 마찬가지.
 - 시즌 활성화(`PATCH /admin/seasons/{id}/activate`)는 "기존 `is_current=true` 항목을 false로, 신규 항목을 true로" 두 쓰기를 `TransactWriteItems`로 묶어 원자적으로 처리한다 — 동시에 두 시즌이 `is_current=true`가 되는 상태를 방지하기 위함.
+- 오프라인 모임 회차는 고정 간격(격주 등)으로 계산하지 않는다. 관리자가 `Meetings`에 실제 모임 날짜를 등록하면, `backend/domain/periods.py`의 `meeting_rounds`(순수 함수)가 날짜순 정렬 후 회차 번호와 구간(from~to)을 읽기 시점에 계산한다 — 회차 번호 자체는 저장하지 않는다.
 
-## 구현 현황 (2026-07-23 기준)
-스캐폴딩 완료 — `requirements.txt`(boto3/PyJWT/bcrypt), `common/`(auth·db·errors·request·responses·time_utils), `domain/`(achievement·dashboard·dday·periods, 순수 함수), `handlers/`(auth·admin·users·entries·seasons·dashboard), `repos/`(admin·users·entries·seasons), `tests/`(domain 로직 유닛테스트), `scripts/seed_admin.py` 모두 존재. GitHub Actions로 AWS Lambda에 배포되어 실사용 검증 단계.
+## 구현 현황 (2026-07-27 기준)
+스캐폴딩 완료 — `requirements.txt`(boto3/PyJWT/bcrypt), `common/`(auth·db·errors·request·responses·time_utils), `domain/`(achievement·dashboard·dday·periods, 순수 함수), `handlers/`(auth·admin·users·entries·seasons·dashboard), `repos/`(admin·users·entries·seasons·meetings), `tests/`(domain 로직 유닛테스트), `scripts/seed_admin.py` 모두 존재. GitHub Actions로 AWS Lambda에 배포되어 실사용 검증 단계.
 
 ## 아직 없는 것 / 알아둘 것
 - `repos/` 계층에 대한 유닛테스트는 없음(DynamoDB 접근이라 통합테스트 성격 — 현재 미작성).

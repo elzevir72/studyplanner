@@ -3,7 +3,7 @@
 Serverless Framework 기반 IaC. 아키텍처 배경은 [../docs/architecture.md](../docs/architecture.md) 참고.
 
 ## 원칙
-- 리소스: API Gateway + Lambda(Python) + DynamoDB(`Users`, `Entries`, `Config`, `Seasons`, `Admin`) + S3(정적 호스팅) + CloudFront.
+- 리소스: API Gateway + Lambda(Python) + DynamoDB(`Users`, `Entries`, `Config`, `Seasons`, `Admin`, `Meetings`) + S3(정적 호스팅) + CloudFront.
 - 커스텀 도메인/Route53은 MVP에서 구성하지 않는다 (CloudFront 기본 URL 사용). 나중에 추가해도 기존 리소스 재설계 불필요.
 - 배포는 GitHub Actions에서 `main` 브랜치 push 시 자동 실행. AWS 자격증명은 GitHub Secrets로 관리, 리포지토리에 절대 커밋하지 않는다.
 - 리소스 이름에 스테이지(`dev`/`prod`) 접두사를 붙여 향후 스테이지 분리가 필요해지면 대응 가능하게 한다 (현재는 단일 스테이지로 충분).
@@ -15,7 +15,7 @@ Serverless Framework 기반 IaC. 아키텍처 배경은 [../docs/architecture.md
 - 배포 후 CloudFormation 스택 아웃풋(`FrontendBucketName`, `FrontendDistributionId`, `ApiUrl`)은 `serverless info --verbose`의 텍스트 출력을 파싱하지 않고, `aws cloudformation describe-stacks --query "Stacks[0].Outputs[?OutputKey=='...'].OutputValue" --output text`로 직접 조회한다 — 텍스트 파싱은 출력 포맷 변경에 취약해 실제 장애(빈 버킷명으로 `s3 sync` 실패)를 겪었다.
 
 ## 배포 파이프라인 구조
-- `serverless.yml` (리포 루트) — DynamoDB 5개 테이블, Lambda 21개 함수, API Gateway HTTP API, S3+CloudFront(OAC) 정의.
+- `serverless.yml` (리포 루트) — DynamoDB 6개 테이블, Lambda 23개 함수, API Gateway HTTP API, S3+CloudFront(OAC) 정의.
 - `infra/package.json` — `serverless` CLI만 devDependency로 관리(`infra/node_modules`에 설치). 실행 시 `npx --prefix infra serverless ...`로 리포 루트(cwd)에서 그 CLI 바이너리를 사용.
 - `.github/workflows/deploy.yml` — `main` push 시 2단계 job(`deploy-backend` → `deploy-frontend`) 순차 실행. 백엔드 배포 후 CloudFormation 아웃풋을 읽어 프론트엔드 빌드(`VITE_API_URL`)와 S3 sync, CloudFront invalidation에 사용.
 
