@@ -302,7 +302,8 @@ td {
 
 .summary-chip {
   flex: 1;
-  background: var(--surface);
+  background: #fff;
+  border: 1px solid var(--card-line);
   border-radius: var(--radius-sm);
   padding: var(--space-3) var(--space-2);
   text-align: center;
@@ -462,8 +463,8 @@ td {
   border-radius: var(--radius-sm);
   margin-top: var(--space-3);
   overflow: hidden;
-  background: #fff;
-  box-shadow: 0 1px 4px -2px rgba(20, 24, 40, 0.12);
+  background: var(--card-bg);
+  box-shadow: 0 2px 8px -4px rgba(20, 24, 40, 0.15);
 }
 
 .accordion summary {
@@ -473,7 +474,6 @@ td {
   cursor: pointer;
   list-style: none;
   color: var(--ink-mid);
-  background: var(--card-bg);
 }
 
 .accordion summary::-webkit-details-marker {
@@ -487,5 +487,11 @@ td {
 .accordion .acc-body input,
 .accordion .acc-body select,
 .accordion .acc-body textarea {
-  background: var(--card-bg);
+  background: #fff;
+  border-color: var(--card-line);
+}
+
+.accordion .acc-body button.secondary {
+  background: #fff;
+  border-color: var(--card-line);
 }
