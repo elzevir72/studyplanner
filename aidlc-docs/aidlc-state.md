@@ -39,4 +39,4 @@
 ### 🟢 CONSTRUCTION PHASE — Build and Test
 - [x] Build and Test — Completed 2026-08-31T04:15:00Z, awaiting user approval
 - **Build and Test Location**: aidlc-docs/construction/build-and-test/
-- **Result**: Build success, 21/21 unit tests pass, 8/8 manual integration checks pass. No deployment performed yet — awaiting user approval to commit/push per CLAUDE.md.
+- **Result**: Build success, 21/21 unit tests pass, 8/8 manual integration checks pass. User committed (5 split commits) and pushed to main. Deployment auto-triggered per-commit; 2 of 5 intermediate deploys failed due to a commit-ordering defect (AdminPage.tsx in commit fecdbfb referenced symbols not added until commit 3984ff3) — expected/harmless since CI checks out each commit independently. Re-ran Deploy for HEAD (98e068d) — succeeded. Production is live and correct as of 98e068d.

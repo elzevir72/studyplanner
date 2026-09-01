@@ -143,9 +143,10 @@ button:not(:disabled):hover {
 }
 
 button.secondary {
-  background: var(--surface);
+  background: #fff;
   color: var(--ink);
   font-weight: 500;
+  border: 1px solid var(--line);
 }
 
 button:disabled {
@@ -247,7 +248,8 @@ td {
   border-radius: var(--radius);
   padding: var(--space-4);
   margin-top: var(--space-4);
-  background: #fff;
+  background: var(--surface);
+  box-shadow: 0 2px 8px -4px rgba(20, 24, 40, 0.12);
 }
 
 .card h2 {
@@ -261,6 +263,13 @@ td {
 
 .card-highlight label {
   color: var(--accent-text);
+}
+
+/* 카드 안의 실제 입력 요소는 흰 배경을 유지해, 회색 카드 위에 "떠 있는" 입력창으로 계층을 드러낸다 */
+.card input,
+.card select,
+.card textarea {
+  background: #fff;
 }
 
 .feed-item {
@@ -411,10 +420,17 @@ td {
   padding: var(--space-3) var(--space-3) 4px;
   margin-top: var(--space-3);
   background: #fff;
+  box-shadow: 0 1px 4px -2px rgba(20, 24, 40, 0.1);
 }
 
 .card-highlight .study-item-block {
   background: #fff;
+}
+
+.study-item-block input,
+.study-item-block select,
+.study-item-block textarea {
+  background: var(--surface);
 }
 
 .study-item-block .secondary {
@@ -436,6 +452,8 @@ td {
   border-radius: var(--radius-sm);
   margin-top: var(--space-3);
   overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 4px -2px rgba(20, 24, 40, 0.1);
 }
 
 .accordion summary {
@@ -445,6 +463,7 @@ td {
   cursor: pointer;
   list-style: none;
   color: var(--ink-mid);
+  background: var(--surface);
 }
 
 .accordion summary::-webkit-details-marker {
@@ -453,4 +472,10 @@ td {
 
 .accordion .acc-body {
   padding: 0 14px var(--space-4);
+}
+
+.accordion .acc-body input,
+.accordion .acc-body select,
+.accordion .acc-body textarea {
+  background: var(--surface);
 }

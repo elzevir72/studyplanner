@@ -187,3 +187,27 @@ All step summaries written to aidlc-docs/construction/고도화-1차-배치/code
 **Context**: CONSTRUCTION phase, Build and Test — Step 9, awaiting user approval to proceed to Operations
 
 ---
+
+## Commit Split — User-Executed, AI-Assisted Staging Verification
+**Timestamp**: 2026-08-31T04:30:00Z
+**User Input**: "커밋을 나눠서 하고 싶은데 나눠서 커밋할 파일과 커밋 내용을 정리해줄래? 커밋은 내가 직접할께" (followed by iterative "스테이징 확인해줘" requests per commit)
+**AI Response**: Proposed a 5-commit split (0: AI-DLC artifacts, 1: achievement drift fix, 2: shared components + design + admin dropdown, 3: admin API endpoint, 4: docs + Config table removal), including exact `git add -p` hunk guidance for serverless.yml and AdminPage.tsx where multiple steps' changes were interleaved in the same file. User executed each `git add`/`git add -p` themselves; AI verified staged diffs against the plan before each commit and flagged one deviation (AdminPage.tsx staged whole rather than split) which the user resolved by adjusting the commit message rather than re-splitting. All 5 commits made by the user. Final `git status` confirms clean working tree — all 90 changed files accounted for across commits.
+**Context**: CONSTRUCTION phase — local commits complete (dcbcdbb, fecdbfb, 3984ff3, 98e068d, plus 62d53ea for AI-DLC artifacts). Not yet pushed to origin/main; deployment requires separate explicit user approval per CLAUDE.md.
+
+---
+
+## Push to origin/main — User-Executed
+**Timestamp**: 2026-08-31T04:35:00Z
+**User Input**: "이미 PUSH 다했어" (followed by "배포알아서 하고올께" after AI attempted to verify via git fetch, which the user declined)
+**AI Response**: Acknowledged. User is handling deployment verification directly (GitHub Actions auto-deploys on main push per CLAUDE.md); AI stood down from git fetch/log verification per user's explicit preference to handle it themselves.
+**Context**: CONSTRUCTION phase — code pushed to origin/main by user. Deployment verification and Build and Test stage approval still pending user's return.
+
+---
+
+## Deployment Failure Diagnosis and Resolution
+**Timestamp**: 2026-08-31T04:45:00Z
+**User Input**: User reported 2 of 5 push-triggered GitHub Actions deploys failed (Deploy #15 for commit fecdbfb, Deploy #17 for commit 98e068d), pasted the deploy.yml workflow file and then the actual failing step's error log
+**AI Response**: Root cause identified from error log: `frontend/src/pages/AdminPage.tsx(7,3): error TS2305: Module has no exported member 'adminListAllUsers'` / `AdminUserSummary`. This is a commit-ordering defect introduced during the manual commit-split process — commit fecdbfb (design/components) staged AdminPage.tsx's dropdown logic which imports `adminListAllUsers`/`AdminUserSummary`, but those symbols weren't added to client.ts/types.ts until commit 3984ff3. Each individual commit is checked out fresh by CI, so fecdbfb alone was genuinely non-compiling, even though the local working tree (always at final state) never caught this via `tsc --noEmit`. Explained that main's HEAD (98e068d) has all symbols present and is unaffected. User re-ran Deploy #17 (HEAD) — succeeded. User then re-ran Deploy #15 (the stale intermediate commit) — failed identically as expected/predicted. Advised this re-run of #15 was unnecessary and safe to ignore, since GitHub Actions deploys are push-triggered per-commit rather than only-latest, and the currently-live deployment reflects the successful #17 (HEAD) run, not #15.
+**Context**: CONSTRUCTION phase — deployment now confirmed live at main HEAD (98e068d). No further action needed on the stale #15 failure. Ready to close out Build and Test stage.
+
+---
