@@ -19,6 +19,7 @@ import FormField from '../components/FormField'
 import TagSelect from '../components/TagSelect'
 import Message from '../components/Message'
 import Accordion from '../components/Accordion'
+import CollapsibleStudyItem from '../components/CollapsibleStudyItem'
 import LoadingPlaceholder from '../components/LoadingPlaceholder'
 import type { Entry, MethodGoal, Season, StudyItem } from '../types'
 
@@ -68,6 +69,23 @@ function minutesToHm(totalMinutes: number): { hours: number; minutes: number } {
   return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 }
 }
 
+// 저장 시 유효성 기준(method && amount.value > 0)과 동일 — 접힘 가능 여부 판정에도 그대로 재사용한다.
+function isStudyItemComplete(item: StudyItem): boolean {
+  return Boolean(item.method) && item.amount.value > 0
+}
+
+function formatAmount(amount: { value: number; unit: string }): string {
+  if (amount.unit === '분') {
+    const { hours, minutes } = minutesToHm(amount.value)
+    return hours > 0 ? `${hours}시간 ${minutes}분` : `${minutes}분`
+  }
+  return `${amount.value}${amount.unit}`
+}
+
+function studyItemSummary(item: StudyItem): string {
+  return [item.method, item.topics.join(','), formatAmount(item.amount)].filter(Boolean).join(' · ')
+}
+
 export default function EntryPage() {
   const navigate = useNavigate()
   const session = getParticipantSession()!
@@ -78,6 +96,7 @@ export default function EntryPage() {
   const [entryLoading, setEntryLoading] = useState(false)
 
   const [studyItems, setStudyItems] = useState<StudyItem[]>([emptyStudyItem()])
+  const [collapsedIndexes, setCollapsedIndexes] = useState<Set<number>>(new Set())
   const [notes, setNotes] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -100,13 +119,17 @@ export default function EntryPage() {
     getEntry(session.user_id, date, session.token)
       .then((e) => {
         setEntry(e)
-        setStudyItems(e.study_items.length > 0 ? e.study_items : [emptyStudyItem()])
+        const items = e.study_items.length > 0 ? e.study_items : [emptyStudyItem()]
+        setStudyItems(items)
+        // 저장된 기록을 불러올 때는 완료된 항목을 전부 접힌 채로 시작 — 요약줄만 훑어보고 필요한 것만 펼쳐 수정
+        setCollapsedIndexes(new Set(items.map((item, i) => (isStudyItemComplete(item) ? i : -1)).filter((i) => i >= 0)))
         setNotes(e.notes)
       })
       .catch((e) => {
         if (e instanceof ApiError && e.status === 404) {
           setEntry(null)
           setStudyItems([emptyStudyItem()])
+          setCollapsedIndexes(new Set())
           setNotes('')
         } else {
           setSaveError('기록을 불러오지 못했습니다.')
@@ -131,8 +154,39 @@ export default function EntryPage() {
     )
   }
 
-  const addStudyItem = () => setStudyItems((items) => [...items, emptyStudyItem()])
-  const removeStudyItem = (index: number) => setStudyItems((items) => items.filter((_, i) => i !== index))
+  const addStudyItem = () => {
+    // 새 수단을 추가하는 시점에, 완료된(수단+학습량 입력된) 기존 항목들만 접는다 — 미완료 항목은 그대로 펼쳐진 채 유지
+    setCollapsedIndexes((prev) => {
+      const next = new Set(prev)
+      studyItems.forEach((item, i) => {
+        if (isStudyItemComplete(item)) next.add(i)
+      })
+      return next
+    })
+    setStudyItems((items) => [...items, emptyStudyItem()])
+  }
+
+  const removeStudyItem = (index: number) => {
+    setStudyItems((items) => items.filter((_, i) => i !== index))
+    // 인덱스가 하나씩 당겨지므로 접힘 상태도 함께 재계산
+    setCollapsedIndexes((prev) => {
+      const next = new Set<number>()
+      prev.forEach((i) => {
+        if (i < index) next.add(i)
+        else if (i > index) next.add(i - 1)
+      })
+      return next
+    })
+  }
+
+  const toggleCollapsed = (index: number, collapsed: boolean) => {
+    setCollapsedIndexes((prev) => {
+      const next = new Set(prev)
+      if (collapsed) next.add(index)
+      else next.delete(index)
+      return next
+    })
+  }
 
   const handleSaveEntry = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -319,7 +373,12 @@ export default function EntryPage() {
             <span className="today-label">{date === todayStr() ? '오늘 기록' : `${date} 기록`}</span>
 
             {studyItems.map((item, index) => (
-              <div className="study-item-block" key={index}>
+              <CollapsibleStudyItem
+                key={index}
+                collapsed={collapsedIndexes.has(index)}
+                onToggle={(collapsed) => toggleCollapsed(index, collapsed)}
+                summary={studyItemSummary(item)}
+              >
                 <FormField label="학습 수단">
                   <TagSelect
                     options={METHOD_PRESETS}
@@ -356,7 +415,7 @@ export default function EntryPage() {
                     이 수단 삭제
                   </Button>
                 )}
-              </div>
+              </CollapsibleStudyItem>
             ))}
 
             <Button variant="secondary" onClick={addStudyItem}>
