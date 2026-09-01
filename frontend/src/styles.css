@@ -5,11 +5,23 @@
   --accent-soft-bg: #eaf3f8;
   --accent-text: #3f6d8a;
   --warn: #d98a73;
+  --success: #6ba98a;
   --ink: #33393f;
   --ink-mid: #6b7178;
   --ink-dim: #98a0a8;
   --line: #e6ebee;
   --surface: #f6f8fa;
+
+  /* 여백 스케일 — 카드/섹션마다 제각각이던 padding/margin을 하나의 리듬으로 통일 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius: 10px;
+  --radius-sm: 6px;
 }
 
 * {
@@ -28,45 +40,75 @@ body {
   margin: 0 auto;
   min-height: 100vh;
   background: #fff;
-  padding: 16px;
+  padding: var(--space-4);
 }
 
 /* 데스크탑: 좁은 카드가 화면 중앙에 덩그러니 뜨는 대신, 여유 있는 폭 + 은은한 카드 프레임으로 전환 */
 @media (min-width: 768px) {
   body {
-    padding: 40px 20px;
+    padding: 48px 20px;
   }
 
   #root {
     max-width: 720px;
     min-height: auto;
-    border-radius: 16px;
-    box-shadow: 0 8px 28px -12px rgba(20, 24, 40, 0.16);
-    padding: 32px 40px;
+    border-radius: 20px;
+    box-shadow: 0 12px 32px -14px rgba(20, 24, 40, 0.18);
+    padding: var(--space-6) 44px;
   }
 }
 
-/* 로그인 화면은 폭이 넓을 이유가 없어 데스크탑에서도 좁게 유지 */
-.login-shell {
+/* 폭이 좁아도 되는 화면(로그인류)은 데스크탑에서도 좁게, 중앙에 여백을 두고 배치 */
+.narrow-shell {
   max-width: 360px;
   margin: 0 auto;
 }
 
+@media (min-width: 768px) {
+  .narrow-shell {
+    margin: var(--space-6) auto;
+  }
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.brand .brand-mark {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
 h1 {
-  font-size: 1.3rem;
+  font-size: 1.35rem;
+  margin: 0;
+  letter-spacing: -0.01em;
 }
 
 h2 {
-  font-size: 1.05rem;
-  margin-top: 24px;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 var(--space-1);
+}
+
+p.lede {
+  color: var(--ink-mid);
+  font-size: 0.88rem;
+  margin: var(--space-1) 0 var(--space-5);
 }
 
 label {
   display: block;
   font-size: 0.85rem;
   color: var(--ink-mid);
-  margin-top: 12px;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
+}
+
+.form-field {
+  margin-top: var(--space-3);
 }
 
 input,
@@ -75,9 +117,10 @@ textarea,
 button {
   width: 100%;
   font-size: 1rem;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
+  font-family: inherit;
 }
 
 textarea {
@@ -89,8 +132,9 @@ button {
   background: var(--accent);
   color: #fff;
   border: none;
-  margin-top: 16px;
+  margin-top: var(--space-4);
   cursor: pointer;
+  font-weight: 600;
   transition: background-color 0.15s ease;
 }
 
@@ -101,6 +145,7 @@ button:not(:disabled):hover {
 button.secondary {
   background: var(--surface);
   color: var(--ink);
+  font-weight: 500;
 }
 
 button:disabled {
@@ -111,16 +156,17 @@ button:disabled {
 .dday-banner {
   background: var(--accent-soft-bg);
   color: var(--accent-text);
-  padding: 10px 12px;
-  border-radius: 8px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
   font-size: 0.9rem;
-  margin-bottom: 16px;
+  font-weight: 500;
+  margin-bottom: var(--space-4);
 }
 
 .error {
   color: var(--warn);
   font-size: 0.85rem;
-  margin-top: 8px;
+  margin-top: var(--space-2);
 }
 
 .hint {
@@ -128,42 +174,62 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+.hint.success {
+  color: var(--success);
+}
+
+.loading-placeholder {
+  color: var(--ink-dim);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: var(--space-5) 0;
+}
+
 nav {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+nav .nav-title {
+  flex: 1;
+  font-weight: 700;
+  font-size: 0.95rem;
 }
 
 nav a,
 nav button {
   width: auto;
   margin-top: 0;
-  padding: 8px 12px;
+  padding: var(--space-2) var(--space-3);
   font-size: 0.85rem;
   background: var(--surface);
   color: var(--ink);
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   font-size: 0.9rem;
 }
 
 th,
 td {
   text-align: left;
-  padding: 8px 6px;
+  padding: var(--space-2) 6px;
   border-bottom: 1px solid var(--line);
 }
 
 .view-tabs {
   display: flex;
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-4);
 }
 
 .view-tabs button {
@@ -178,14 +244,28 @@ td {
 
 .card {
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 12px;
-  margin-top: 12px;
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+  background: #fff;
+}
+
+.card h2 {
+  margin-bottom: var(--space-3);
+}
+
+.card-highlight {
+  background: var(--accent-soft-bg);
+  border-color: transparent;
+}
+
+.card-highlight label {
+  color: var(--accent-text);
 }
 
 .feed-item {
   border-bottom: 1px solid var(--line);
-  padding: 8px 0;
+  padding: var(--space-2) 0;
   font-size: 0.9rem;
 }
 
@@ -197,20 +277,20 @@ td {
 /* ---- 대시보드: 요약 칩 + 참가자별 진행률 바 ---- */
 .summary-strip {
   display: flex;
-  gap: 8px;
-  margin: 12px 0;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
 }
 
 .summary-chip {
   flex: 1;
   background: var(--surface);
-  border-radius: 8px;
-  padding: 10px 10px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-2);
   text-align: center;
 }
 
 .summary-chip .num {
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--accent-text);
@@ -227,15 +307,15 @@ td {
   font-weight: 700;
   color: var(--ink-dim);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: 20px 0 8px;
+  letter-spacing: 0.05em;
+  margin: var(--space-5) 0 var(--space-2);
 }
 
 .person-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 0;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -286,29 +366,21 @@ td {
 }
 
 /* ---- 개인 기록: 오늘 카드 강조 + 부가 기능 접이식 ---- */
-.today-card {
-  background: var(--accent-soft-bg);
-  border-radius: 10px;
-  padding: 14px 14px 6px;
-  margin-top: 12px;
-}
-
-.today-card .today-label {
+.today-label {
+  display: inline-block;
   font-size: 0.7rem;
   color: var(--accent-text);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 700;
+  margin-bottom: var(--space-1);
 }
 
-.today-card label {
+.progress-hint {
   color: var(--accent-text);
-}
-
-.today-card .progress-hint {
-  color: var(--accent-text);
-  font-size: 0.85rem;
-  margin: 8px 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: var(--space-3) 0 0;
 }
 
 .tag-select {
@@ -320,8 +392,9 @@ td {
 .tag-btn {
   width: auto;
   margin-top: 0;
-  padding: 6px 12px;
+  padding: 6px 14px;
   font-size: 0.82rem;
+  font-weight: 500;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: #fff;
@@ -334,14 +407,18 @@ td {
 
 .study-item-block {
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 10px 10px 4px;
-  margin-top: 10px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-3) 4px;
+  margin-top: var(--space-3);
+  background: #fff;
+}
+
+.card-highlight .study-item-block {
   background: #fff;
 }
 
 .study-item-block .secondary {
-  margin-top: 10px;
+  margin-top: var(--space-3);
 }
 
 .tag-btn.selected {
@@ -354,23 +431,15 @@ td {
   background: var(--accent-strong);
 }
 
-.today-card .tag-btn {
-  background: #fff;
-}
-
-.today-card .tag-btn.selected {
-  background: var(--accent);
-}
-
 .accordion {
   border: 1px solid var(--line);
-  border-radius: 8px;
-  margin-top: 12px;
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-3);
   overflow: hidden;
 }
 
 .accordion summary {
-  padding: 12px 14px;
+  padding: var(--space-3) 14px;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -383,5 +452,5 @@ td {
 }
 
 .accordion .acc-body {
-  padding: 0 14px 14px;
+  padding: 0 14px var(--space-4);
 }

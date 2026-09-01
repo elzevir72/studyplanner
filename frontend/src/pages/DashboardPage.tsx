@@ -15,6 +15,11 @@ import {
 } from '../api/client'
 import { clearParticipantSession, getParticipantSession } from '../auth'
 import DdayBanner from '../components/DdayBanner'
+import Button from '../components/Button'
+import FormField from '../components/FormField'
+import Message from '../components/Message'
+import Accordion from '../components/Accordion'
+import LoadingPlaceholder from '../components/LoadingPlaceholder'
 import type { DashboardResponse, FeedItem, Meeting, MeetingRoundSummary, ParticipantSummary, Season } from '../types'
 
 function todayStr(): string {
@@ -120,23 +125,25 @@ function EditMeetingForm({
 
   return (
     <div className="study-item-block">
-      <label>모임 날짜</label>
-      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-      <label>한 줄 메모</label>
-      <input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="예: N2 문법 총정리" />
-      {error && <p className="error">{error}</p>}
-      <button type="button" onClick={handleSave} disabled={saving}>
+      <FormField label="모임 날짜">
+        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </FormField>
+      <FormField label="한 줄 메모">
+        <input value={memo} onChange={(e) => setMemo(e.target.value)} placeholder="예: N2 문법 총정리" />
+      </FormField>
+      {error && <Message kind="error">{error}</Message>}
+      <Button onClick={handleSave} disabled={saving}>
         저장
-      </button>
-      <button type="button" className="secondary" onClick={onCancel} disabled={saving}>
+      </Button>
+      <Button variant="secondary" onClick={onCancel} disabled={saving}>
         취소
-      </button>
+      </Button>
       {isOwner ? (
-        <button type="button" className="secondary" onClick={handleDelete} disabled={saving}>
+        <Button variant="secondary" onClick={handleDelete} disabled={saving}>
           이 모임 삭제
-        </button>
+        </Button>
       ) : (
-        <p className="hint">삭제는 이 모임을 등록한 참가자만 할 수 있어요.</p>
+        <Message kind="hint">삭제는 이 모임을 등록한 참가자만 할 수 있어요.</Message>
       )}
     </div>
   )
@@ -166,19 +173,21 @@ function AddMeetingForm({ token, onCreated }: { token: string; onCreated: () => 
 
   return (
     <form onSubmit={handleSubmit} className="study-item-block">
-      <label htmlFor="new-meeting-date">모임 날짜</label>
-      <input id="new-meeting-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-      <label htmlFor="new-meeting-memo">한 줄 메모 (선택)</label>
-      <input
-        id="new-meeting-memo"
-        value={memo}
-        onChange={(e) => setMemo(e.target.value)}
-        placeholder="예: N2 문법 총정리"
-      />
-      {error && <p className="error">{error}</p>}
-      <button type="submit" disabled={saving}>
+      <FormField label="모임 날짜" htmlFor="new-meeting-date">
+        <input id="new-meeting-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+      </FormField>
+      <FormField label="한 줄 메모 (선택)" htmlFor="new-meeting-memo">
+        <input
+          id="new-meeting-memo"
+          value={memo}
+          onChange={(e) => setMemo(e.target.value)}
+          placeholder="예: N2 문법 총정리"
+        />
+      </FormField>
+      {error && <Message kind="error">{error}</Message>}
+      <Button type="submit" disabled={saving}>
         모임 등록
-      </button>
+      </Button>
     </form>
   )
 }
@@ -260,19 +269,19 @@ export default function DashboardPage() {
   return (
     <div>
       <nav>
-        <span style={{ flex: 1, alignSelf: 'center' }}>그룹 대시보드</span>
+        <span className="nav-title">그룹 대시보드</span>
         <a href="/entry">내 기록</a>
-        <button className="secondary" onClick={handleLogout}>
+        <Button variant="secondary" onClick={handleLogout}>
           로그아웃
-        </button>
+        </Button>
       </nav>
 
       <DdayBanner season={season} />
 
       {season && (
-        <p className="hint">
+        <Message kind="hint">
           현재 시즌: {season.name} ({season.start_date} ~ {season.end_date})
-        </p>
+        </Message>
       )}
 
       <div className="view-tabs">
@@ -291,48 +300,47 @@ export default function DashboardPage() {
       </div>
 
       {loading ? (
-        <p className="hint">불러오는 중...</p>
+        <LoadingPlaceholder />
       ) : view === 'meetings' ? (
         <>
-          {rounds.length === 0 && <p className="hint">아직 등록된 오프라인 모임이 없어요.</p>}
+          {rounds.length === 0 && <Message kind="hint">아직 등록된 오프라인 모임이 없어요.</Message>}
           {rounds.map((r) => (
-            <details
-              className="accordion"
+            <Accordion
               key={r.round}
               open={openRound === r.round}
-              onToggle={(e) => setOpenRound(e.currentTarget.open ? r.round : null)}
+              onToggle={(isOpen) => setOpenRound(isOpen ? r.round : null)}
+              summary={
+                <>
+                  {r.round}회차 · {r.range.to}
+                  {r.memo ? ` · ${r.memo}` : ''}
+                </>
+              }
             >
-              <summary>
-                {r.round}회차 · {r.range.to}
-                {r.memo ? ` · ${r.memo}` : ''}
-              </summary>
-              <div className="acc-body">
-                {editingRound === r.round ? (
-                  <EditMeetingForm
-                    round={r}
-                    token={session.token}
-                    isOwner={r.created_by === session.user_id}
-                    onSaved={() => {
-                      setEditingRound(null)
-                      loadMeetingRounds()
-                    }}
-                    onCancel={() => setEditingRound(null)}
-                  />
-                ) : (
-                  <>
-                    <p className="hint">
-                      {r.range.from} ~ {r.range.to}
-                    </p>
-                    <button type="button" className="secondary" onClick={() => setEditingRound(r.round)}>
-                      이 모임 수정 / 삭제
-                    </button>
-                    <SummaryStrip participants={r.participants} />
-                    <div className="section-title-sm">참가자별 달성률</div>
-                    <ParticipantList participants={r.participants} notParticipated={r.not_participated} />
-                  </>
-                )}
-              </div>
-            </details>
+              {editingRound === r.round ? (
+                <EditMeetingForm
+                  round={r}
+                  token={session.token}
+                  isOwner={r.created_by === session.user_id}
+                  onSaved={() => {
+                    setEditingRound(null)
+                    loadMeetingRounds()
+                  }}
+                  onCancel={() => setEditingRound(null)}
+                />
+              ) : (
+                <>
+                  <Message kind="hint">
+                    {r.range.from} ~ {r.range.to}
+                  </Message>
+                  <Button variant="secondary" onClick={() => setEditingRound(r.round)}>
+                    이 모임 수정 / 삭제
+                  </Button>
+                  <SummaryStrip participants={r.participants} />
+                  <div className="section-title-sm">참가자별 달성률</div>
+                  <ParticipantList participants={r.participants} notParticipated={r.not_participated} />
+                </>
+              )}
+            </Accordion>
           ))}
 
           {upcomingMeetings.length > 0 && (
@@ -353,9 +361,9 @@ export default function DashboardPage() {
       ) : (
         <>
           {range && (
-            <p className="hint">
+            <Message kind="hint">
               {range.from} ~ {range.to}
-            </p>
+            </Message>
           )}
           <SummaryStrip participants={participants} />
           <div className="section-title-sm">참가자별 달성률</div>
@@ -366,7 +374,7 @@ export default function DashboardPage() {
       {view !== 'meetings' && (
         <>
           <div className="section-title-sm">공유 메모</div>
-          {feedItems.length === 0 && <p className="hint">공유된 메모가 없습니다.</p>}
+          {feedItems.length === 0 && <Message kind="hint">공유된 메모가 없습니다.</Message>}
           {feedItems.map((item) => (
             <div className="feed-item" key={`${item.user_id}-${item.date}`}>
               <div className="meta">

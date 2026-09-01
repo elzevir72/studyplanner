@@ -4,12 +4,17 @@ import {
   adminActivateSeason,
   adminCreateSeason,
   adminCreateUser,
+  adminListAllUsers,
   adminUpdateUserStatus,
   adminVerify,
   listSeasons,
 } from '../api/client'
 import { clearAdminSession, getAdminSession, setAdminSession } from '../auth'
-import type { Season } from '../types'
+import type { AdminUserSummary, Season } from '../types'
+import Button from '../components/Button'
+import Card from '../components/Card'
+import FormField from '../components/FormField'
+import Message from '../components/Message'
 
 function LoginForm({ onLoggedIn }: { onLoggedIn: () => void }) {
   const [password, setPassword] = useState('')
@@ -32,21 +37,25 @@ function LoginForm({ onLoggedIn }: { onLoggedIn: () => void }) {
   }
 
   return (
-    <div>
-      <h1>관리자</h1>
+    <div className="narrow-shell">
+      <div className="brand">
+        <span className="brand-mark">🛠️</span>
+        <h1>관리자</h1>
+      </div>
       <form onSubmit={handleSubmit}>
-        <label htmlFor="admin-password">비밀번호</label>
-        <input
-          id="admin-password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={loading}>
+        <FormField label="비밀번호" htmlFor="admin-password">
+          <input
+            id="admin-password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </FormField>
+        {error && <Message kind="error">{error}</Message>}
+        <Button type="submit" disabled={loading}>
           {loading ? '확인 중...' : '로그인'}
-        </button>
+        </Button>
       </form>
     </div>
   )
@@ -73,33 +82,54 @@ function CreateUserForm({ token }: { token: string }) {
   }
 
   return (
-    <div className="card">
+    <Card>
       <h2>참가자 계정 생성</h2>
       <form onSubmit={handleSubmit}>
-        <label htmlFor="new-user-id">user_id</label>
-        <input id="new-user-id" value={userId} onChange={(e) => setUserId(e.target.value)} required />
-        <label htmlFor="new-display-name">표시 이름</label>
-        <input id="new-display-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
-        <label htmlFor="new-pin">초기 PIN (4자리)</label>
-        <input
-          id="new-pin"
-          inputMode="numeric"
-          maxLength={4}
-          value={pin}
-          onChange={(e) => setPin(e.target.value)}
-          required
-        />
-        {message && <p className="hint">{message}</p>}
-        <button type="submit">계정 생성</button>
+        <FormField label="user_id" htmlFor="new-user-id">
+          <input id="new-user-id" value={userId} onChange={(e) => setUserId(e.target.value)} required />
+        </FormField>
+        <FormField label="표시 이름" htmlFor="new-display-name">
+          <input id="new-display-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+        </FormField>
+        <FormField label="초기 PIN (4자리)" htmlFor="new-pin">
+          <input
+            id="new-pin"
+            inputMode="numeric"
+            maxLength={4}
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            required
+          />
+        </FormField>
+        {message && <Message kind="hint">{message}</Message>}
+        <Button type="submit">계정 생성</Button>
       </form>
-    </div>
+    </Card>
   )
 }
 
 function UpdateUserStatusForm({ token }: { token: string }) {
+  const [users, setUsers] = useState<AdminUserSummary[]>([])
   const [userId, setUserId] = useState('')
-  const [status, setStatus] = useState<'active' | 'inactive'>('inactive')
+  const [status, setStatus] = useState<'active' | 'inactive'>('active')
   const [message, setMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    adminListAllUsers(token).then((list) => {
+      setUsers(list)
+      if (list.length > 0) {
+        setUserId(list[0].user_id)
+        setStatus(list[0].status)
+      }
+    })
+  }, [token])
+
+  // 참가자 선택 시 — 그 참가자의 현재 상태로 select를 초기화 (서버 상태를 있는 그대로 반영)
+  const handleUserSelect = (nextUserId: string) => {
+    setUserId(nextUserId)
+    const found = users.find((u) => u.user_id === nextUserId)
+    if (found) setStatus(found.status)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -107,26 +137,37 @@ function UpdateUserStatusForm({ token }: { token: string }) {
     try {
       await adminUpdateUserStatus(userId, status, token)
       setMessage(`'${userId}' 상태가 ${status}로 변경되었습니다.`)
+      setUsers((list) => list.map((u) => (u.user_id === userId ? { ...u, status } : u)))
     } catch (err) {
       setMessage(err instanceof ApiError ? err.message : '상태 변경에 실패했습니다.')
     }
   }
 
   return (
-    <div className="card">
+    <Card>
       <h2>참가자 상태 변경</h2>
       <form onSubmit={handleSubmit}>
-        <label htmlFor="status-user-id">user_id</label>
-        <input id="status-user-id" value={userId} onChange={(e) => setUserId(e.target.value)} required />
-        <label htmlFor="status-select">상태</label>
-        <select id="status-select" value={status} onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}>
-          <option value="active">active</option>
-          <option value="inactive">inactive</option>
-        </select>
-        {message && <p className="hint">{message}</p>}
-        <button type="submit">상태 변경</button>
+        <FormField label="참가자" htmlFor="status-user-id">
+          <select id="status-user-id" value={userId} onChange={(e) => handleUserSelect(e.target.value)} required>
+            {users.map((u) => (
+              <option key={u.user_id} value={u.user_id}>
+                {u.display_name} ({u.status})
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="상태" htmlFor="status-select">
+          <select id="status-select" value={status} onChange={(e) => setStatus(e.target.value as 'active' | 'inactive')}>
+            <option value="active">active</option>
+            <option value="inactive">inactive</option>
+          </select>
+        </FormField>
+        {message && <Message kind="hint">{message}</Message>}
+        <Button type="submit" disabled={!userId}>
+          상태 변경
+        </Button>
       </form>
-    </div>
+    </Card>
   )
 }
 
@@ -168,25 +209,31 @@ function CreateSeasonForm({ token, onCreated }: { token: string; onCreated: () =
   }
 
   return (
-    <div className="card">
+    <Card>
       <h2>시즌 생성</h2>
       <form onSubmit={handleSubmit}>
-        <label htmlFor="season-id">season_id</label>
-        <input id="season-id" value={seasonId} onChange={(e) => setSeasonId(e.target.value)} required />
-        <label htmlFor="season-name">이름</label>
-        <input id="season-name" value={name} onChange={(e) => setName(e.target.value)} required />
-        <label htmlFor="start-date">시작일</label>
-        <input id="start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
-        <label htmlFor="end-date">종료일</label>
-        <input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
-        <label htmlFor="exam-date">시험일 (선택)</label>
-        <input id="exam-date" type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} />
-        <label htmlFor="target-level">목표 급수 (선택)</label>
-        <input id="target-level" value={targetLevel} onChange={(e) => setTargetLevel(e.target.value)} />
-        {message && <p className="hint">{message}</p>}
-        <button type="submit">시즌 생성</button>
+        <FormField label="season_id" htmlFor="season-id">
+          <input id="season-id" value={seasonId} onChange={(e) => setSeasonId(e.target.value)} required />
+        </FormField>
+        <FormField label="이름" htmlFor="season-name">
+          <input id="season-name" value={name} onChange={(e) => setName(e.target.value)} required />
+        </FormField>
+        <FormField label="시작일" htmlFor="start-date">
+          <input id="start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+        </FormField>
+        <FormField label="종료일" htmlFor="end-date">
+          <input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+        </FormField>
+        <FormField label="시험일 (선택)" htmlFor="exam-date">
+          <input id="exam-date" type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} />
+        </FormField>
+        <FormField label="목표 급수 (선택)" htmlFor="target-level">
+          <input id="target-level" value={targetLevel} onChange={(e) => setTargetLevel(e.target.value)} />
+        </FormField>
+        {message && <Message kind="hint">{message}</Message>}
+        <Button type="submit">시즌 생성</Button>
       </form>
-    </div>
+    </Card>
   )
 }
 
@@ -211,23 +258,24 @@ function ActivateSeasonForm({ token, seasons, onActivated }: { token: string; se
   }
 
   return (
-    <div className="card">
+    <Card>
       <h2>시즌 전환</h2>
       <form onSubmit={handleSubmit}>
-        <label htmlFor="activate-season">시즌 선택</label>
-        <select id="activate-season" value={seasonId} onChange={(e) => setSeasonId(e.target.value)}>
-          {seasons.map((s) => (
-            <option key={s.season_id} value={s.season_id}>
-              {s.name} {s.is_current ? '(현재)' : ''}
-            </option>
-          ))}
-        </select>
-        {message && <p className="hint">{message}</p>}
-        <button type="submit" disabled={!seasonId}>
+        <FormField label="시즌 선택" htmlFor="activate-season">
+          <select id="activate-season" value={seasonId} onChange={(e) => setSeasonId(e.target.value)}>
+            {seasons.map((s) => (
+              <option key={s.season_id} value={s.season_id}>
+                {s.name} {s.is_current ? '(현재)' : ''}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        {message && <Message kind="hint">{message}</Message>}
+        <Button type="submit" disabled={!seasonId}>
           이 시즌을 현재 시즌으로 전환
-        </button>
+        </Button>
       </form>
-    </div>
+    </Card>
   )
 }
 
@@ -248,16 +296,16 @@ export default function AdminPage() {
   return (
     <div>
       <nav>
-        <span style={{ flex: 1, alignSelf: 'center' }}>관리자</span>
-        <button
-          className="secondary"
+        <span className="nav-title">관리자</span>
+        <Button
+          variant="secondary"
           onClick={() => {
             clearAdminSession()
             setSession(null)
           }}
         >
           로그아웃
-        </button>
+        </Button>
       </nav>
 
       <CreateUserForm token={session.token} />

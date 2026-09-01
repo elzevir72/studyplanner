@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { ApiError, listUsers, verifyPin } from '../api/client'
 import { setParticipantSession } from '../auth'
 import type { UserSummary } from '../types'
+import Button from '../components/Button'
+import FormField from '../components/FormField'
+import Message from '../components/Message'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -37,34 +40,39 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-shell">
-      <h1>Study Planner</h1>
-      <p className="hint">이름을 선택하고 PIN을 입력하세요.</p>
+    <div className="narrow-shell">
+      <div className="brand">
+        <span className="brand-mark">📘</span>
+        <h1>Study Planner</h1>
+      </div>
+      <p className="lede">이름을 선택하고 PIN을 입력하세요.</p>
       <form onSubmit={handleSubmit}>
-        <label htmlFor="user">이름</label>
-        <select id="user" value={userId} onChange={(e) => setUserId(e.target.value)} required>
-          {users.map((u) => (
-            <option key={u.user_id} value={u.user_id}>
-              {u.display_name}
-            </option>
-          ))}
-        </select>
+        <FormField label="이름" htmlFor="user">
+          <select id="user" value={userId} onChange={(e) => setUserId(e.target.value)} required>
+            {users.map((u) => (
+              <option key={u.user_id} value={u.user_id}>
+                {u.display_name}
+              </option>
+            ))}
+          </select>
+        </FormField>
 
-        <label htmlFor="pin">PIN (4자리)</label>
-        <input
-          id="pin"
-          type="password"
-          inputMode="numeric"
-          maxLength={4}
-          value={pin}
-          onChange={(e) => setPin(e.target.value)}
-          required
-        />
+        <FormField label="PIN (4자리)" htmlFor="pin">
+          <input
+            id="pin"
+            type="password"
+            inputMode="numeric"
+            maxLength={4}
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            required
+          />
+        </FormField>
 
-        {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={loading || !userId}>
+        {error && <Message kind="error">{error}</Message>}
+        <Button type="submit" disabled={loading || !userId}>
           {loading ? '확인 중...' : '입장하기'}
-        </button>
+        </Button>
       </form>
     </div>
   )
