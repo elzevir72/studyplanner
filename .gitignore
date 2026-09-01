@@ -21,3 +21,10 @@ build/
 # OS / editor
 .DS_Store
 *.log
+.idea/
+
+# Claude Code local session state
+.claude/
+
+# AI-DLC 원본 배포본 (참고용 보관 — 라이브 워크플로우는 AI-DLC-WORKFLOW.md / .aidlc-rule-details/ 사용, GitHub 원본에서 언제든 다시 받을 수 있음)
+aidlc-workflows-main/
