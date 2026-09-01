@@ -20,7 +20,9 @@ export function calcEntryAchievementRate(studyItems: StudyItem[], goalSnapshot: 
   for (const goal of goalSnapshot) {
     const amount = amountByMethod.get(goal.method) ?? null
     if (!amount) {
-      rates.push(0)
+      // 목표는 있는데 그 수단으로 기록을 안 남긴 경우 — unit이 설정된 목표만 0%로 평균에 포함
+      // (backend/domain/achievement.py의 `if goal.get("unit") is not None:` 가드와 동일하게 맞춤)
+      if (goal.unit) rates.push(0)
       continue
     }
     const rate = calcAmountRate(amount, { value: goal.value, unit: goal.unit })
