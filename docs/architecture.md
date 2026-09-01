@@ -51,7 +51,7 @@ CDK(Python) 대신 Serverless Framework 선택. Lambda + API Gateway 중심 구�
 ### 8. 시즌(Season) 도입
 JLPT처럼 특정 회차 시험을 목표로 하는 스터디는 "같은 급수를 여러 회차 재도전"하는 경우가 있어, 데이터를 시즌 단위로 끊어 보는 게 유용함.
 - `Seasons` 테이블 신설, `Entries`에 `season_id`를 자동 태깅(작성 시점의 현재 시즌).
-- 격주 집계 anchor는 `Config`의 고정값 대신 **현재 시즌의 `start_date`**로 계산 — 시즌 전환 시 격주 주기도 자연스럽게 재설정됨.
+- 격주 집계 anchor는 `Config`의 고정값 대신 **현재 시즌의 `start_date`**로 계산 — 시즌 전환 시 격주 주기도 자연스럽게 재설정됨. (`Config` 테이블 자체는 한동안 미사용 상태로 인프라/문서에 남아있다가, 2026-08-31 고도화 배치에서 `serverless.yml`/`docs/data-model.md`에서 완전히 제거됨.)
 - 시즌 전체 통계(`/dashboard/season/{season_id}`)를 별도로 제공.
 
 ### 9. 멀티그룹 지원: 스키마 확장이 아닌 별도 배포

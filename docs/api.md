@@ -19,6 +19,7 @@ Base path: `/api` (API Gateway → Lambda, Python). 인증이 필요한 엔드�
 |---|---|---|---|
 | POST | `/admin/auth/verify` | `{password}` → 검증 성공 시 관리자 전용 토큰 발급 | 불필요 |
 | POST | `/admin/users` | 신규 참가자 계정 생성 `{user_id, display_name, pin}` | 필요 (관리자) |
+| GET | `/admin/users` | 참가자 전체 목록 (`active`+`inactive`, `user_id`/`display_name`/`status`) — 관리자 화면의 참가자 상태 변경 드롭다운용 | 필요 (관리자) |
 | PATCH | `/admin/users/{user_id}` | 참가자 `status` 변경 (`active`/`inactive`) | 필요 (관리자) |
 | POST | `/admin/seasons` | 신규 시즌 생성 `{season_id, name, start_date, end_date, exam_date, target_level}` | 필요 (관리자) |
 | PATCH | `/admin/seasons/{season_id}/activate` | 해당 시즌을 `is_current=true`로 전환. 기존에 `is_current=true`였던 시즌은 자동으로 `false`로 전환됨 (원자적 처리 필요) | 필요 (관리자) |
@@ -46,17 +47,19 @@ Base path: `/api` (API Gateway → Lambda, Python). 인증이 필요한 엔드�
 
 - 목표는 수단(`method`)별로 여러 개 설정 가능 (예: 인강 30분, 문제집 10페이지). 요청 시 목표 리스트 전체를 통째로 교체한다(부분 수정 아님).
 - 목표를 변경해도 과거 기록의 달성률에는 영향 없음 — 기록 시점의 목표가 `Entries.goal_snapshot`에 스냅샷으로 저장되어 있기 때문.
+- `GET /users/{user_id}/goal`은 목표를 아직 설정하지 않은 유저에 대해 `null`을 그대로 반환한다(빈 배열이 아님) — 프론트는 `g ?? []`로 처리한다.
 
 ## 개인 학습 이력
 | Method | Path | 설명 | 인증 |
 |---|---|---|---|
-| GET | `/entries/{user_id}?from=&to=` | 기간 내 본인 기록 목록 | 필요 (본인만) |
-| GET | `/entries/{user_id}/{date}` | 특정 날짜 기록 단건 조회 | 필요 (본인만) |
+| GET | `/entries/{user_id}?from=&to=` | 기간 내 기록 목록 | 필요 (로그인한 참가자면 누구나 — 본인 여부 무관) |
+| GET | `/entries/{user_id}/{date}` | 특정 날짜 기록 단건 조회 | 필요 (로그인한 참가자면 누구나 — 본인 여부 무관) |
 | PUT | `/entries/{user_id}/{date}` | 기록 생성/수정 (upsert) | 필요 (본인만) |
 | DELETE | `/entries/{user_id}/{date}` | 기록 삭제 | 필요 (본인만) |
 
-- 다른 사람의 `user_id`로는 조회는 가능(공유 목적)하되, 쓰기(PUT/DELETE)는 토큰의 `user_id`와 경로의 `user_id`가 일치할 때만 허용.
+- 두 GET 엔드포인트는 `require_participant`만 검사한다(`require_participant_self`가 아님) — 다른 사람의 `user_id`로도 조회 가능(공유 목적), 토큰이 유효한 참가자의 것이기만 하면 된다. 쓰기(PUT/DELETE)는 토큰의 `user_id`와 경로의 `user_id`가 일치할 때만 허용.
 - `PUT /entries/{user_id}/{date}` 요청 바디: `{study_items: [{method, topics, amount}, ...], notes}`. 하루에 여러 학습 수단을 각각 다른 내용/학습량으로 기록할 수 있다 (예: 인강으로 문법·청해 30분, 문제집으로 어휘 5페이지). 달성률(%)은 클라이언트가 보내지 않으며, 서버가 저장 시점의 `daily_goal`을 `goal_snapshot`으로 복사해 함께 저장한다.
+- `PUT /entries/{user_id}/{date}`는 활성 시즌(`is_current=true`)이 없으면 `400`을 반환한다 — 기록 저장 시 `season_id`를 자동으로 채워야 하는데 채울 시즌이 없기 때문.
 
 ## 오프라인 모임
 실제 모임이 열린 날짜를 등록하면 그 날짜들을 기준으로 회차가 자동으로 매겨진다. 격주처럼 고정 간격을 가정하지 않는다 — 모임이 매번 정확히 2주 간격이 아닐 수 있어서, 실제 등록된 날짜를 그대로 anchor로 쓴다. **등록/수정은 관리자 전용이 아니라 참가자 누구나 가능**하지만, **삭제는 등록한 본인만** 가능하다 — 시즌/계정 관리와 달리 모임 일정 조율은 그룹 구성원 전체가 실시간으로 정정할 수 있어야 실용적이지만, 삭제는 다른 사람의 등록을 실수로/의도적으로 지우는 사고를 막기 위해 등록자 확인이 필요하다고 판단.
@@ -68,6 +71,8 @@ Base path: `/api` (API Gateway → Lambda, Python). 인증이 필요한 엔드�
 | PUT | `/meetings/{meeting_id}` | 모임 수정 `{date, memo}` | 필요 (참가자, 누구나) |
 | DELETE | `/meetings/{meeting_id}` | 모임 삭제 | 필요 (참가자, **등록한 본인만** — 403 반환) |
 | GET | `/dashboard/meetings` | 회차별 요약 목록 (지난 모임만, 회차마다 참가자별 집계 + 그 모임의 메모) | 불필요 |
+
+- `/dashboard/meetings`는 활성 시즌이 없으면 `400`을 반환한다 — 회차 구간 계산에 시즌 시작일(anchor)이 필요하기 때문.
 
 - 회차 구간: 1회차는 "현재 시즌 시작일 ~ 1회차 모임 날짜", 이후 회차는 "직전 회차 모임 다음날 ~ 이번 회차 모임 날짜".
 - **`/dashboard/meetings`는 오늘(KST) 이후 날짜의 모임을 회차 집계에서 제외한다** — 아직 열리지 않은 모임을 이미 끝난 회차처럼 보여주지 않기 위함. 아직 지나지 않은 모임을 확인하려면 `/meetings`로 전체 목록을 조회한 뒤 클라이언트에서 오늘 이후 날짜만 걸러 "예정된 모임"으로 별도 표시한다(집계 없이 날짜/메모만).

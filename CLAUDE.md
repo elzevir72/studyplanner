@@ -2,6 +2,17 @@
 
 10명 이하 스터디 그룹용 학습 이력 기록/공유 도구. 상세 배경은 [README.md](README.md), 아키텍처 결정은 [docs/architecture.md](docs/architecture.md) 참고.
 
+## AI-DLC 워크플로우 (2026-08-31부터 적용)
+
+이 프로젝트는 프로토타입 단계를 지나 고도화 단계부터 [AI-DLC](https://github.com/awslabs/aidlc-workflows) 방법론을 적용한다. **사용자가 소프트웨어 개발 작업을 요청하면(기능 추가/버그 수정/리팩터링 등), [AI-DLC-WORKFLOW.md](AI-DLC-WORKFLOW.md)를 최우선으로 로드하고 그 워크플로우를 따른다** — 이 문서가 정의하는 Inception(요구사항/설계) → Construction(구현) → Operations(운영) 3단계와, 각 단계의 세부 규칙(`.aidlc-rule-details/`)을 지침에 따라 로드해서 사용한다.
+
+- 이미 만들어진 이 프로젝트의 설계/구현 상태(아래 "진행 상황"과 각 하위 `CLAUDE.md`, `docs/`)는 AI-DLC 관점에서 "기존 코드베이스(brownfield)"로 취급한다 — 처음부터 다시 설계하지 않고, 이 문서들을 기존 컨텍스트로 활용한다.
+- 워크플로우 산출물(요구사항, 설계, 감사 로그 등)은 `aidlc-docs/`에 생성한다. 이 프로젝트의 코드/문서 구조(`backend/`, `frontend/`, `infra/`, `docs/`, 루트 `CLAUDE.md` 등)는 그대로 유지하고, `aidlc-docs/`는 그 위에 추가되는 별도 레이어다.
+- 원본 AI-DLC 배포본은 `aidlc-workflows-main/`에 참고용으로 보관한다(라이브 워크플로우 실행에는 `AI-DLC-WORKFLOW.md`와 `.aidlc-rule-details/`를 사용).
+- 간단한 질문 답변이나 사소한 확인 요청까지 이 무거운 단계별 워크플로우를 강제하지는 않는다 — 워크플로우 자체가 "adaptive"하게 요청의 복잡도에 맞춰 단계를 건너뛰도록 설계되어 있으니 그 판단을 따른다.
+
+---
+
 ## 진행 상황 (2026-07-23 기준)
 
 **완료**

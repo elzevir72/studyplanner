@@ -15,7 +15,6 @@ provider:
     ADMIN_TABLE: ${self:service}-${self:provider.stage}-admin
     SEASONS_TABLE: ${self:service}-${self:provider.stage}-seasons
     ENTRIES_TABLE: ${self:service}-${self:provider.stage}-entries
-    CONFIG_TABLE: ${self:service}-${self:provider.stage}-config
     MEETINGS_TABLE: ${self:service}-${self:provider.stage}-meetings
     JWT_SECRET: ${env:JWT_SECRET}
   httpApi:
@@ -38,7 +37,6 @@ provider:
             - !GetAtt SeasonsTable.Arn
             - !GetAtt EntriesTable.Arn
             - !Sub '${EntriesTable.Arn}/index/*'
-            - !GetAtt ConfigTable.Arn
             - !GetAtt MeetingsTable.Arn
 
 package:
@@ -232,18 +230,6 @@ resources:
                 KeyType: RANGE
             Projection:
               ProjectionType: ALL
-
-    ConfigTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:provider.environment.CONFIG_TABLE}
-        BillingMode: PAY_PER_REQUEST
-        AttributeDefinitions:
-          - AttributeName: config_id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: config_id
-            KeyType: HASH
 
     MeetingsTable:
       Type: AWS::DynamoDB::Table
