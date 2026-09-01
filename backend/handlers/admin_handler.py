@@ -37,6 +37,15 @@ def create_user(event, context):
 
 
 @handle_errors
+def list_all_users(event, context):
+    require_admin(event)
+    users = users_repo.list_all_users()
+    return responses.ok(
+        [{"user_id": u["user_id"], "display_name": u["display_name"], "status": u["status"]} for u in users]
+    )
+
+
+@handle_errors
 def update_user_status(event, context):
     require_admin(event)
     user_id = path_params(event)["user_id"]

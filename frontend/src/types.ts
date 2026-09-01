@@ -3,6 +3,13 @@ export interface UserSummary {
   display_name: string
 }
 
+// 관리자 전용 — active+inactive 전체 참가자 목록 (공개 UserSummary와 달리 status 포함)
+export interface AdminUserSummary {
+  user_id: string
+  display_name: string
+  status: 'active' | 'inactive'
+}
+
 export interface Amount {
   value: number
   unit: string

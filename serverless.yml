@@ -150,6 +150,10 @@ functions:
     handler: backend/handlers/admin_handler.create_user
     events:
       - httpApi: { path: '/api/admin/users', method: post }
+  adminListAllUsers:
+    handler: backend/handlers/admin_handler.list_all_users
+    events:
+      - httpApi: { path: '/api/admin/users', method: get }
   adminUpdateUserStatus:
     handler: backend/handlers/admin_handler.update_user_status
     events:

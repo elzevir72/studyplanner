@@ -1,4 +1,5 @@
 import type {
+  AdminUserSummary,
   DashboardResponse,
   Entry,
   FeedItem,
@@ -118,6 +119,8 @@ export const adminVerify = (password: string) =>
 
 export const adminCreateUser = (user_id: string, display_name: string, pin: string, token: string) =>
   request(`/api/admin/users`, { method: 'POST', body: JSON.stringify({ user_id, display_name, pin }) }, token)
+
+export const adminListAllUsers = (token: string) => request<AdminUserSummary[]>('/api/admin/users', {}, token)
 
 export const adminUpdateUserStatus = (user_id: string, status: 'active' | 'inactive', token: string) =>
   request(`/api/admin/users/${user_id}`, { method: 'PATCH', body: JSON.stringify({ status }) }, token)
