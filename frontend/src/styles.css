@@ -11,6 +11,8 @@
   --ink-dim: #98a0a8;
   --line: #e6ebee;
   --surface: #f6f8fa;
+  --card-bg: #eef1f4;
+  --card-line: #d8dee3;
 
   /* 여백 스케일 — 카드/섹션마다 제각각이던 padding/margin을 하나의 리듬으로 통일 */
   --space-1: 4px;
@@ -47,13 +49,15 @@ body {
 @media (min-width: 768px) {
   body {
     padding: 48px 20px;
+    background: var(--card-bg);
   }
 
   #root {
     max-width: 720px;
     min-height: auto;
+    border: 1px solid var(--card-line);
     border-radius: 20px;
-    box-shadow: 0 12px 32px -14px rgba(20, 24, 40, 0.18);
+    box-shadow: 0 16px 40px -12px rgba(20, 24, 40, 0.25);
     padding: var(--space-6) 44px;
   }
 }
@@ -244,12 +248,12 @@ td {
 }
 
 .card {
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-line);
   border-radius: var(--radius);
   padding: var(--space-4);
   margin-top: var(--space-4);
-  background: var(--surface);
-  box-shadow: 0 2px 8px -4px rgba(20, 24, 40, 0.12);
+  background: var(--card-bg);
+  box-shadow: 0 2px 8px -4px rgba(20, 24, 40, 0.15);
 }
 
 .card h2 {
@@ -265,11 +269,17 @@ td {
   color: var(--accent-text);
 }
 
-/* 카드 안의 실제 입력 요소는 흰 배경을 유지해, 회색 카드 위에 "떠 있는" 입력창으로 계층을 드러낸다 */
+/* 카드 안의 실제 입력 요소는 흰 배경 + 테두리를 유지해, 카드 배경과의 경계를 명확히 한다 */
 .card input,
 .card select,
 .card textarea {
   background: #fff;
+  border-color: var(--card-line);
+}
+
+.card button.secondary {
+  background: #fff;
+  border-color: var(--card-line);
 }
 
 .feed-item {
@@ -415,12 +425,12 @@ td {
 }
 
 .study-item-block {
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-line);
   border-radius: var(--radius-sm);
   padding: var(--space-3) var(--space-3) 4px;
   margin-top: var(--space-3);
   background: #fff;
-  box-shadow: 0 1px 4px -2px rgba(20, 24, 40, 0.1);
+  box-shadow: 0 1px 4px -2px rgba(20, 24, 40, 0.12);
 }
 
 .card-highlight .study-item-block {
@@ -430,7 +440,7 @@ td {
 .study-item-block input,
 .study-item-block select,
 .study-item-block textarea {
-  background: var(--surface);
+  background: var(--card-bg);
 }
 
 .study-item-block .secondary {
@@ -448,12 +458,12 @@ td {
 }
 
 .accordion {
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-line);
   border-radius: var(--radius-sm);
   margin-top: var(--space-3);
   overflow: hidden;
   background: #fff;
-  box-shadow: 0 1px 4px -2px rgba(20, 24, 40, 0.1);
+  box-shadow: 0 1px 4px -2px rgba(20, 24, 40, 0.12);
 }
 
 .accordion summary {
@@ -463,7 +473,7 @@ td {
   cursor: pointer;
   list-style: none;
   color: var(--ink-mid);
-  background: var(--surface);
+  background: var(--card-bg);
 }
 
 .accordion summary::-webkit-details-marker {
@@ -477,5 +487,5 @@ td {
 .accordion .acc-body input,
 .accordion .acc-body select,
 .accordion .acc-body textarea {
-  background: var(--surface);
+  background: var(--card-bg);
 }
