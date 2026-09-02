@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ApiError,
   createMeeting,
@@ -20,6 +20,7 @@ import FormField from '../components/FormField'
 import Message from '../components/Message'
 import Accordion from '../components/Accordion'
 import LoadingPlaceholder from '../components/LoadingPlaceholder'
+import Toast from '../components/Toast'
 import type { DashboardResponse, FeedItem, Meeting, MeetingRoundSummary, ParticipantSummary, Season } from '../types'
 
 function todayStr(): string {
@@ -90,7 +91,7 @@ function EditMeetingForm({
   round: MeetingRoundSummary
   token: string
   isOwner: boolean
-  onSaved: () => void
+  onSaved: (toastMessage: string) => void
   onCancel: () => void
 }) {
   const [date, setDate] = useState(round.range.to)
@@ -103,7 +104,7 @@ function EditMeetingForm({
     setSaving(true)
     try {
       await updateMeeting(round.meeting_id, date, memo, token)
-      onSaved()
+      onSaved('수정이 완료되었습니다.')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '수정에 실패했습니다.')
     } finally {
@@ -116,7 +117,7 @@ function EditMeetingForm({
     setSaving(true)
     try {
       await deleteMeeting(round.meeting_id, token)
-      onSaved()
+      onSaved('삭제가 완료되었습니다.')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '삭제에 실패했습니다.')
       setSaving(false)
@@ -194,7 +195,21 @@ function AddMeetingForm({ token, onCreated }: { token: string; onCreated: () => 
 
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const session = getParticipantSession()!
+
+  const [toastMessage, setToastMessage] = useState<string | null>(
+    (location.state as { toast?: string } | null)?.toast ?? null,
+  )
+
+  const dismissToast = () => {
+    setToastMessage(null)
+    // 새로고침/뒤로가기 시 같은 토스트가 다시 뜨지 않도록 history state를 정리
+    // (StrictMode의 effect 이중 실행과 무관하게, 토스트가 실제로 사라질 때 한 번만 호출됨)
+    if ((location.state as { toast?: string } | null)?.toast) {
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }
 
   const [season, setSeason] = useState<Season | null>(null)
   const [view, setView] = useState<ViewKind>('meetings') // 오프라인 모임이 실제 스터디 주기와 일치하는 기본 뷰
@@ -268,6 +283,7 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {toastMessage && <Toast message={toastMessage} onDismiss={dismissToast} />}
       <nav>
         <span className="nav-title">그룹 대시보드</span>
         <a href="/entry">내 기록</a>
@@ -321,8 +337,9 @@ export default function DashboardPage() {
                   round={r}
                   token={session.token}
                   isOwner={r.created_by === session.user_id}
-                  onSaved={() => {
+                  onSaved={(message) => {
                     setEditingRound(null)
+                    setToastMessage(message)
                     loadMeetingRounds()
                   }}
                   onCancel={() => setEditingRound(null)}

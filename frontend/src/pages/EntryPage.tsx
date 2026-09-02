@@ -21,6 +21,7 @@ import Message from '../components/Message'
 import Accordion from '../components/Accordion'
 import CollapsibleStudyItem from '../components/CollapsibleStudyItem'
 import LoadingPlaceholder from '../components/LoadingPlaceholder'
+import Toast from '../components/Toast'
 import type { Entry, MethodGoal, Season, StudyItem } from '../types'
 
 const METHOD_PRESETS = ['인강', '문제집', '단어암기', '모의고사']
@@ -100,6 +101,7 @@ export default function EntryPage() {
   const [notes, setNotes] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   const [goals, setGoals] = useState<MethodGoal[]>([])
   const [goalMessage, setGoalMessage] = useState<string | null>(null)
@@ -200,8 +202,7 @@ export default function EntryPage() {
     try {
       const saved = await putEntry(session.user_id, date, { study_items: validItems, notes }, session.token)
       setEntry(saved)
-      alert('저장이 완료되었습니다.')
-      navigate('/dashboard')
+      navigate('/dashboard', { state: { toast: '저장이 완료되었습니다.' } })
     } catch (err) {
       setSaveError(err instanceof ApiError ? err.message : '저장에 실패했습니다.')
     } finally {
@@ -215,7 +216,9 @@ export default function EntryPage() {
     await deleteEntry(session.user_id, date, session.token)
     setEntry(null)
     setStudyItems([emptyStudyItem()])
+    setCollapsedIndexes(new Set())
     setNotes('')
+    setToastMessage('삭제가 완료되었습니다.')
   }
 
   const updateGoal = (index: number, patch: Partial<MethodGoal>) => {
@@ -355,6 +358,7 @@ export default function EntryPage() {
 
   return (
     <div>
+      {toastMessage && <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />}
       <nav>
         <span className="nav-title">{session.display_name}님</span>
         <a href="/dashboard">대시보드</a>

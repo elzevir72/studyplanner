@@ -190,6 +190,30 @@ button:disabled {
   padding: var(--space-5) 0;
 }
 
+.toast {
+  position: fixed;
+  top: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - var(--space-4) * 2);
+  width: max-content;
+  background: var(--ink);
+  color: #fff;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 8px 24px -8px rgba(20, 24, 40, 0.4);
+  z-index: 1000;
+  opacity: 1;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toast-hide {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-8px);
+}
+
 nav {
   display: flex;
   align-items: center;
